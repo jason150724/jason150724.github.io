@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>提交游戏 - 游戏广场</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div id="navbar"></div>
+
+  <main>
+    <div class="form-box">
+      <h2>🎮 提交你的游戏</h2>
+      <p style="color:#8b93bd;font-size:14px;margin-bottom:22px;line-height:1.7;">
+        提交后游戏<strong style="color:#b197fc;">不会立刻出现在主页</strong>，需要等管理员审核通过。<br>
+        游戏请做成<strong>单个 HTML 文件</strong>（CSS 和 JavaScript 都写在这个文件里）。
+      </p>
+
+      <form id="submitForm" onsubmit="return false;">
+        <div class="form-row">
+          <label>游戏名称 <span class="hint">（1~40 个字）</span></label>
+          <input type="text" id="title" maxlength="40" placeholder="例如：超级贪吃蛇" required>
+        </div>
+
+        <div class="form-row">
+          <label>你的名字 / 昵称 <span class="hint">（1~30 个字）</span></label>
+          <input type="text" id="author" maxlength="30" placeholder="例如：小明" required>
+        </div>
+
+        <div class="form-row">
+          <label>游戏分类</label>
+          <select id="category">
+            <option>动作</option>
+            <option>冒险</option>
+            <option>休闲</option>
+            <option>益智</option>
+            <option>射击</option>
+            <option>角色扮演</option>
+            <option>其他</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <label>游戏简介 <span class="hint">（最多 200 个字，告诉大家怎么玩）</span></label>
+          <textarea id="description" maxlength="200" rows="3" placeholder="例如：方向键控制移动，吃到食物加分……"></textarea>
+        </div>
+
+        <div class="form-row">
+          <label>封面颜色</label>
+          <div class="form-inline">
+            <input type="color" id="color" value="#7048e8">
+            <span class="hint">主页游戏卡片上方显示的颜色</span>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label>游戏代码（单个 HTML 文件的全部内容）</label>
+          <div class="form-inline" style="margin-bottom:8px;">
+            <button type="button" class="btn btn-secondary" style="padding:7px 16px;font-size:13px;" onclick="document.getElementById('fileInput').click()">📁 选择 .html 文件上传</button>
+            <button type="button" class="btn btn-ghost" style="padding:7px 16px;font-size:13px;" onclick="fillTemplate()">✨ 填入新手模板</button>
+            <input type="file" id="fileInput" accept=".html,.htm,text/html" style="display:none;">
+          </div>
+          <textarea id="code" class="code-area" placeholder="把你的游戏 HTML 代码粘贴到这里，或者点上面的按钮选择文件……"></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary" id="submitBtn" style="width:100%;">提交，等待审核</button>
+        <div id="msg" class="form-msg"></div>
+      </form>
+    </div>
+  </main>
+
+  <footer>游戏广场 · 文明创作，拒绝抄袭</footer>
+
+  <script src="common.js"></script>
+  <script>
+    renderNavbar('submit');
+
+    const msg = document.getElementById('msg');
+
+    /* 选择本地 .html 文件后，把文件内容读进代码框 */
+    document.getElementById('fileInput').addEventListener('change', function () {
+      const file = this.files[0];
+      if (!file) return;
+      if (file.size > 500 * 1024) {
+        msg.className = 'form-msg err';
+        msg.textContent = '文件太大了（最多 500KB）';
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        document.getElementById('code').value = reader.result;
+        msg.className = 'form-msg ok';
+        msg.textContent = '已读取文件：' + file.name;
+      };
+      reader.readAsText(file, 'utf-8');
+    });
+
+    /* 给第一次做游戏的人准备的最小模板 */
+    function fillTemplate() {
+      document.getElementById('code').value =
+'<!DOCTYPE html>\n' +
+'<html>\n' +
+'<head><meta charset="utf-8"><title>我的游戏</title></head>\n' +
+'<body style="text-align:center;font-family:sans-serif;background:#111;color:#fff;padding-top:80px;">\n' +
+'  <h2 id="t">点我！</h2>\n' +
+'  <p>次数：<span id="n">0</span></p>\n' +
+'  <button onclick="clickMe()" style="font-size:20px;padding:10px 30px;">点我加分</button>\n' +
+'  <script>\n' +
+'    var count = 0;\n' +
+'    function clickMe(){\n' +
+'      count++;\n' +
+'      document.getElementById("n").textContent = count;\n' +
+'      if(count >= 10) document.getElementById("t").textContent = "你赢了！";\n' +
+'    }\n' +
+'  <' + '/script>\n' +
+'</body>\n' +
+'</html>';
+    }
+
+    /* 点"提交"按钮 */
+    document.getElementById('submitForm').addEventListener('submit', async () => {
+      const btn = document.getElementById('submitBtn');
+      const payload = {
+        title: document.getElementById('title').value.trim(),
+        author: document.getElementById('author').value.trim(),
+        category: document.getElementById('category').value,
+        description: document.getElementById('description').value.trim(),
+        color: document.getElementById('color').value,
+        code: document.getElementById('code').value
+      };
+
+      if (!payload.title || !payload.author) {
+        msg.className = 'form-msg err';
+        msg.textContent = '请填写游戏名称和你的名字';
+        return;
+      }
+      if (payload.code.trim().length < 10) {
+        msg.className = 'form-msg err';
+        msg.textContent = '请粘贴游戏代码，或选择 .html 文件';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = '正在提交...';
+      msg.className = 'form-msg';
+      msg.textContent = '';
+
+      try {
+        const data = await api('/api/games', { method: 'POST', body: payload });
+        msg.className = 'form-msg ok';
+        msg.innerHTML = '✅ ' + esc(data.message) + '　<a href="index.html">回主页看看</a>';
+        document.getElementById('submitForm').reset();
+        document.getElementById('color').value = '#7048e8';
+        toast('提交成功，等待审核', 'ok');
+      } catch (e) {
+        msg.className = 'form-msg err';
+        msg.textContent = '❌ ' + e.message;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '提交，等待审核';
+      }
+    });
+  </script>
+</body>
+</html>

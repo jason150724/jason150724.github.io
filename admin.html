@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>管理员审核 - 游戏广场</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div id="navbar"></div>
+
+  <main>
+    <!-- ========== 登录框（未登录时显示） ========== -->
+    <section id="loginBox" class="login-center" style="display:none;">
+      <div class="form-box" style="width:420px;">
+        <h2>🔒 管理员审核模式</h2>
+        <p style="color:#8b93bd;font-size:14px;margin-bottom:20px;">请输入管理员密码，审核玩家提交的游戏。</p>
+        <form id="loginForm" onsubmit="return false;">
+          <div class="form-row">
+            <label>管理员密码</label>
+            <input type="password" id="password" placeholder="请输入密码" autofocus>
+          </div>
+          <button class="btn btn-primary" style="width:100%;" id="loginBtn">进入审核模式</button>
+          <div id="loginMsg" class="form-msg"></div>
+        </form>
+        <p class="hint" style="color:#555c85;font-size:12px;margin-top:10px;">
+          默认密码是 admin123（网站正式发布时请在服务器上改成自己的密码）
+        </p>
+      </div>
+    </section>
+
+    <!-- ========== 审核面板（登录后显示） ========== -->
+    <section id="panel" style="display:none;">
+      <div class="play-header">
+        <h2>📋 待审核游戏</h2>
+        <span class="spacer" style="flex:1;"></span>
+        <button class="btn btn-secondary" onclick="loadPending()">🔄 刷新列表</button>
+        <button class="btn btn-ghost" onclick="logout()">退出登录</button>
+      </div>
+      <div id="pendingList">
+        <div class="loading">正在加载...</div>
+      </div>
+    </section>
+  </main>
+
+  <footer>游戏广场 · 审核管理后台</footer>
+
+  <script src="common.js"></script>
+  <script>
+    renderNavbar('admin');
+
+    const loginBox = document.getElementById('loginBox');
+    const panel = document.getElementById('panel');
+
+    /* ---------- 登录 ---------- */
+    document.getElementById('loginForm').addEventListener('submit', async () => {
+      const pwd = document.getElementById('password').value;
+      const btn = document.getElementById('loginBtn');
+      const msg = document.getElementById('loginMsg');
+      if (!pwd) { msg.className = 'form-msg err'; msg.textContent = '请输入密码'; return; }
+
+      btn.disabled = true;
+      try {
+        const data = await api('/api/admin/login', { method: 'POST', body: { password: pwd } });
+        setToken(data.token);                 // 记住令牌
+        showPanel();
+        toast('登录成功，进入审核模式', 'ok');
+      } catch (e) {
+        msg.className = 'form-msg err';
+        msg.textContent = '❌ ' + e.message;
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    function logout() {
+      clearToken();
+      panel.style.display = 'none';
+      loginBox.style.display = 'flex';
+      document.getElementById('password').value = '';
+    }
+
+    function showPanel() {
+      loginBox.style.display = 'none';
+      panel.style.display = 'block';
+      loadPending();
+    }
+
+    /* ---------- 加载待审核列表 ---------- */
+    async function loadPending() {
+      const box = document.getElementById('pendingList');
+      box.innerHTML = '<div class="loading">正在加载...</div>';
+      try {
+        const data = await api('/api/admin/pending', { auth: true });
+        const games = data.games || [];
+
+        if (games.length === 0) {
+          box.innerHTML = '<div class="empty-tip">🎉 目前没有待审核的游戏，所有提交都处理完啦！</div>';
+          return;
+        }
+
+        box.innerHTML = games.map((g, i) => (
+          '<div class="admin-card" id="card-' + i + '">' +
+            '<h3>' + esc(g.title) + ' <span class="tag">' + esc(g.category || '其他') + '</span></h3>' +
+            '<div class="meta">作者：' + esc(g.author) +
+              ' ｜ 提交时间：' + formatTime(g.createdAt) +
+              ' ｜ 编号：' + esc(g.id) + '</div>' +
+            '<div class="desc">' + esc(g.description || '（作者没有写简介）') + '</div>' +
+
+            '<button class="btn btn-secondary" style="padding:7px 16px;font-size:13px;" ' +
+              'onclick="togglePreview(' + i + ')">👁 预览游戏</button>' +
+
+            // 预览用的沙箱窗口（默认隐藏）
+            '<iframe class="admin-preview" id="preview-' + i + '" sandbox="allow-scripts allow-popups allow-pointer-lock"></iframe>' +
+
+            // 折叠查看源代码
+            '<details><summary>查看源代码</summary>' +
+              '<div class="code-view">' + esc(g.code) + '</div>' +
+            '</details>' +
+
+            '<div class="admin-actions">' +
+              '<button class="btn btn-success" onclick="approve(\'' + g.id + '\',' + i + ')">✅ 审核通过（显示到主页）</button>' +
+              '<button class="btn btn-danger" onclick="reject(\'' + g.id + '\',' + i + ')">❌ 拒绝并删除</button>' +
+            '</div>' +
+          '</div>'
+        )).join('');
+
+        // 把每个游戏的代码暂存起来，点"预览"时才放进 iframe
+        window.__pendingGames = games;
+      } catch (e) {
+        if (e.message.includes('管理员') || e.message.includes('登录') || e.message.includes('401')) {
+          logout();
+          toast('登录已过期，请重新输入密码', 'err');
+        } else {
+          box.innerHTML = '<div class="empty-tip">加载失败：' + esc(e.message) + '</div>';
+        }
+      }
+    }
+
+    /* ---------- 显示/隐藏游戏预览 ---------- */
+    function togglePreview(i) {
+      const frame = document.getElementById('preview-' + i);
+      if (frame.style.display === 'block') {
+        frame.style.display = 'none';
+        frame.srcdoc = '';   // 关掉时停止游戏运行
+      } else {
+        frame.style.display = 'block';
+        frame.srcdoc = window.__pendingGames[i].code;
+      }
+    }
+
+    /* ---------- 通过 ---------- */
+    async function approve(id, i) {
+      if (!confirm('确定通过这个游戏吗？通过后它会立刻出现在主页。')) return;
+      try {
+        const data = await api('/api/admin/approve/' + id, { method: 'POST', auth: true });
+        toast(data.message, 'ok');
+        removeCard(i);
+      } catch (e) {
+        toast('操作失败：' + e.message, 'err');
+      }
+    }
+
+    /* ---------- 拒绝（删除） ---------- */
+    async function reject(id, i) {
+      if (!confirm('确定拒绝并删除这个游戏吗？此操作无法撤销。')) return;
+      try {
+        const data = await api('/api/admin/reject/' + id, { method: 'POST', auth: true });
+        toast(data.message, 'ok');
+        removeCard(i);
+      } catch (e) {
+        toast('操作失败：' + e.message, 'err');
+      }
+    }
+
+    /* 从屏幕上移走一张卡片；如果一张都不剩了，显示"全部处理完" */
+    function removeCard(i) {
+      const card = document.getElementById('card-' + i);
+      if (card) card.remove();
+      if (document.querySelectorAll('.admin-card').length === 0) {
+        document.getElementById('pendingList').innerHTML =
+          '<div class="empty-tip">🎉 目前没有待审核的游戏，所有提交都处理完啦！</div>';
+      }
+    }
+
+    /* ---------- 页面打开时：如果令牌还有效，直接进审核面板 ---------- */
+    (async function init() {
+      if (getToken()) {
+        try {
+          const data = await api('/api/admin/check', { auth: true });
+          if (data.ok) { showPanel(); return; }
+        } catch (e) { /* 令牌无效就显示登录框 */ }
+      }
+      loginBox.style.display = 'flex';
+    })();
+  </script>
+</body>
+</html>

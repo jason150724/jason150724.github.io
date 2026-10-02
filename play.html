@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>玩游戏 - 游戏广场</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div id="navbar"></div>
+
+  <main>
+    <div id="loading" class="loading">正在加载游戏...</div>
+
+    <!-- 游戏信息 + 游戏画面（加载成功后显示） -->
+    <div id="content" style="display:none;">
+      <div class="play-header">
+        <a class="btn btn-ghost" href="index.html">← 返回主页</a>
+        <h2 id="title"></h2>
+        <span class="tag" id="category"></span>
+        <span class="spacer" style="flex:1;"></span>
+        <span class="play-meta" id="author"></span>
+      </div>
+      <p class="play-meta" id="description" style="margin-bottom:14px;"></p>
+
+      <!--
+        sandbox 沙箱说明（重要的安全措施）：
+        玩家提交的代码是不可信的，所以把它放进 iframe 沙箱里运行。
+        allow-scripts = 允许游戏里的 JavaScript 运行
+        故意不给 allow-same-origin = 游戏无法读写本网站的数据/Cookie
+        这样即使有人提交恶意代码，也影响不到游戏广场网站本身。
+      -->
+      <iframe
+        id="gameFrame"
+        class="game-frame"
+        sandbox="allow-scripts allow-popups allow-pointer-lock"
+        title="游戏画面"></iframe>
+    </div>
+  </main>
+
+  <footer>游戏广场 · 游戏内容由玩家上传，如发现违规内容请联系管理员删除</footer>
+
+  <script src="common.js"></script>
+  <script>
+    renderNavbar();
+
+    async function loadGame() {
+      const id = getQuery('id');
+      if (!id) {
+        document.getElementById('loading').innerHTML =
+          '没有指定游戏。<a href="index.html">回主页</a>';
+        return;
+      }
+
+      try {
+        const data = await api('/api/games/' + encodeURIComponent(id));
+        const g = data.game;
+
+        document.title = g.title + ' - 游戏广场';
+        document.getElementById('title').textContent = g.title;
+        document.getElementById('category').textContent = g.category || '其他';
+        document.getElementById('author').textContent = '作者：' + g.author;
+        document.getElementById('description').textContent = g.description || '';
+
+        // srcdoc 直接赋值（不用拼字符串），游戏代码里有引号也不会出错
+        document.getElementById('gameFrame').srcdoc = g.code;
+
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('content').style.display = 'block';
+      } catch (e) {
+        document.getElementById('loading').innerHTML =
+          '❌ ' + esc(e.message) + '<br><br><a class="btn btn-secondary" href="index.html">返回主页</a>';
+      }
+    }
+
+    loadGame();
+  </script>
+</body>
+</html>

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>游戏广场 - 大家的在线小游戏合集</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- 顶部导航栏（由 common.js 自动填充） -->
+  <div id="navbar"></div>
+
+  <main>
+    <!-- 首页大横幅 -->
+    <section class="hero">
+      <h1>发现好玩的网页小游戏</h1>
+      <p>所有游戏都由玩家自己制作并提交，通过管理员审核后展示在这里，点开就能直接玩！</p>
+      <a class="btn btn-primary" href="submit.html">🎮 我也要提交游戏</a>
+    </section>
+
+    <!-- 游戏列表区域 -->
+    <h2 class="section-title">全部游戏 <span id="count" style="font-size:14px;color:#6a719c;font-weight:normal;"></span></h2>
+    <div id="gameGrid" class="grid">
+      <div class="loading">正在加载游戏列表...</div>
+    </div>
+  </main>
+
+  <footer>
+    游戏广场 · 玩家自制小游戏分享平台 · 管理员入口在右上角
+  </footer>
+
+  <script src="common.js"></script>
+  <script>
+    renderNavbar('home');
+
+    /** 向服务器要"已通过审核"的游戏列表，然后画成卡片 */
+    async function loadGames() {
+      const grid = document.getElementById('gameGrid');
+      try {
+        const data = await api('/api/games');
+        const games = data.games || [];
+
+        document.getElementById('count').textContent = '（共 ' + games.length + ' 个）';
+
+        if (games.length === 0) {
+          grid.innerHTML = '<div class="empty-tip">暂时还没有游戏，快来提交第一个吧！</div>';
+          return;
+        }
+
+        // 拼出所有卡片。注意：用户输入的文字必须用 esc() 转义后再放到页面上
+        grid.innerHTML = games.map(g => {
+          const coverChar = g.title.charAt(0) || '🎮';
+          return (
+            '<div class="card" onclick="location.href=\'play.html?id=' + encodeURIComponent(g.id) + '\'">' +
+              '<div class="card-cover" style="background:' + esc(g.color) + '">' + esc(coverChar) + '</div>' +
+              '<div class="card-body">' +
+                '<div class="card-title">' + esc(g.title) + '</div>' +
+                '<div class="card-author">作者：' + esc(g.author) + '</div>' +
+                '<div class="card-desc">' + esc(g.description || '这个作者很懒，没有写简介。') + '</div>' +
+                '<span class="tag">' + esc(g.category || '其他') + '</span>' +
+              '</div>' +
+            '</div>'
+          );
+        }).join('');
+      } catch (e) {
+        grid.innerHTML = '<div class="empty-tip">加载失败：' + esc(e.message) + '<br>请确认服务器已经启动</div>';
+      }
+    }
+
+    loadGames();
+  </script>
+</body>
+</html>
