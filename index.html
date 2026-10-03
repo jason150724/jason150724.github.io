@@ -1,74 +1,2022 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>游戏广场 - 大家的在线小游戏合集</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎮 游戏合集 - 9个小游戏点开即玩</title>
+<style>
+  /* ============ 页面整体样式 ============ */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: radial-gradient(circle at 20% 0%, #251a52 0%, #100f2c 55%, #0b0a1f 100%);
+    min-height: 100vh;
+    font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+    color: #e2e6ff;
+    user-select: none;
+  }
+
+  /* 顶部标题 */
+  header {
+    text-align: center;
+    padding: 48px 20px 30px;
+  }
+  header h1 {
+    font-size: 42px;
+    background: linear-gradient(90deg, #b197fc, #74c0fc);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: 3px;
+  }
+  header p {
+    margin-top: 12px;
+    color: #8b93bd;
+    font-size: 15px;
+  }
+
+  /* 游戏卡片网格 */
+  main.grid {
+    max-width: 1060px;
+    margin: 0 auto;
+    padding: 10px 24px 60px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 22px;
+  }
+  @media (max-width: 900px) { main.grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 600px) { main.grid { grid-template-columns: 1fr; } }
+
+  .card {
+    background: rgba(26, 29, 58, .85);
+    border: 1px solid #2b2f55;
+    border-radius: 18px;
+    padding: 26px 22px;
+    cursor: pointer;
+    transition: transform .15s, box-shadow .15s, border-color .15s;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .card:hover {
+    transform: translateY(-5px);
+    border-color: #7048e8;
+    box-shadow: 0 12px 30px rgba(112, 72, 232, .28);
+  }
+  .card-icon {
+    font-size: 44px;
+    line-height: 1;
+  }
+  .card-title {
+    font-size: 21px;
+    font-weight: bold;
+  }
+  .card-tag {
+    display: inline-block;
+    align-self: flex-start;
+    font-size: 12px;
+    padding: 3px 12px;
+    border-radius: 20px;
+    background: rgba(112, 72, 232, .22);
+    color: #b197fc;
+  }
+  .card-desc {
+    font-size: 13.5px;
+    color: #9aa3d4;
+    line-height: 1.7;
+    flex: 1;
+  }
+  .card-play {
+    margin-top: 4px;
+    font-size: 14px;
+    color: #74c0fc;
+  }
+
+  footer {
+    text-align: center;
+    color: #555c85;
+    font-size: 13px;
+    padding: 24px;
+  }
+
+  /* ============ 游戏运行弹窗（全屏覆盖） ============ */
+  .player {
+    position: fixed;
+    inset: 0;
+    background: #0b0a1f;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+  }
+  .player.hidden { display: none; }
+  .player-bar {
+    height: 54px;
+    flex-shrink: 0;
+    background: #141733;
+    border-bottom: 1px solid #2b2f55;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 0 18px;
+  }
+  .back-btn {
+    padding: 8px 18px;
+    font-size: 14px;
+    border: none;
+    border-radius: 9px;
+    background: linear-gradient(90deg, #7048e8, #4263eb);
+    color: #fff;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .back-btn:hover { filter: brightness(1.1); }
+  #playerTitle { font-size: 17px; font-weight: bold; color: #dce2ff; }
+  #frame {
+    flex: 1;
+    width: 100%;
+    border: none;
+    background: #fff;
+  }
+</style>
 </head>
 <body>
 
-  <!-- 顶部导航栏（由 common.js 自动填充） -->
-  <div id="navbar"></div>
+  <header>
+    <h1>🎮 游戏合集</h1>
+    <p>9 个小游戏，点开即玩 · 不用联网 · 纯静态单页面</p>
+  </header>
 
-  <main>
-    <!-- 首页大横幅 -->
-    <section class="hero">
-      <h1>发现好玩的网页小游戏</h1>
-      <p>所有游戏都由玩家自己制作并提交，通过管理员审核后展示在这里，点开就能直接玩！</p>
-      <a class="btn btn-primary" href="submit.html">🎮 我也要提交游戏</a>
-    </section>
+  <!-- 游戏卡片由下面的脚本自动生成 -->
+  <main class="grid" id="grid"></main>
 
-    <!-- 游戏列表区域 -->
-    <h2 class="section-title">全部游戏 <span id="count" style="font-size:14px;color:#6a719c;font-weight:normal;"></span></h2>
-    <div id="gameGrid" class="grid">
-      <div class="loading">正在加载游戏列表...</div>
+  <footer>游戏合集 · 共 9 个游戏 · 点击卡片开始玩</footer>
+
+  <!-- 游戏运行容器：默认隐藏，点卡片后全屏显示 -->
+  <div class="player hidden" id="player">
+    <div class="player-bar">
+      <button class="back-btn" id="backBtn">← 返回游戏列表</button>
+      <span id="playerTitle"></span>
     </div>
-  </main>
+    <!--
+      游戏在独立沙箱 iframe 里运行：
+      allow-scripts 允许游戏脚本运行；不允许同源访问，游戏之间完全隔离。
+      srcdoc 在打开游戏时才填入游戏的完整 HTML 代码。
+    -->
+    <iframe id="frame" sandbox="allow-scripts allow-pointer-lock allow-popups"></iframe>
+  </div>
 
-  <footer>
-    游戏广场 · 玩家自制小游戏分享平台 · 管理员入口在右上角
-  </footer>
+<script>
+/* ============================================================
+   9 个游戏的数据：每个游戏都是一个完整独立的 HTML 文件内容，
+   原封不动地存在 html 字段里，运行时整体放进 iframe。
+   ============================================================ */
+var GAMES = [
 
-  <script src="common.js"></script>
-  <script>
-    renderNavbar('home');
+/* ---------------- 游戏 1：打地鼠 ---------------- */
+{
+  title: '打地鼠',
+  icon: '🐹',
+  tag: '休闲 · 鼠标',
+  desc: '30秒内点击从洞里冒出来的地鼠，点中越多分越高！',
+  color: '#7048e8',
+  html: `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>打地鼠</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: linear-gradient(135deg, #1a1d3a, #2d1b4e);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: "Microsoft YaHei", sans-serif;
+    color: #fff;
+    user-select: none;
+  }
+  h1 { font-size: 32px; margin-bottom: 10px; letter-spacing: 4px; }
+  .info {
+    display: flex;
+    gap: 30px;
+    font-size: 18px;
+    margin-bottom: 20px;
+  }
+  .info span { color: #ffd43b; font-weight: bold; }
+  .board {
+    display: grid;
+    grid-template-columns: repeat(3, 100px);
+    grid-template-rows: repeat(3, 100px);
+    gap: 14px;
+  }
+  .hole {
+    background: radial-gradient(circle, #2c1810, #1a0f08);
+    border-radius: 50%;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    box-shadow: inset 0 6px 12px rgba(0,0,0,.6);
+  }
+  .mole {
+    position: absolute;
+    bottom: -70px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 54px;
+    transition: bottom .15s ease-out;
+    pointer-events: none;
+  }
+  .hole.up .mole { bottom: 12px; }
+  .hole.hit .mole { transform: translateX(-50%) scale(.6); opacity: .4; }
+  .start-btn {
+    margin-top: 24px;
+    padding: 12px 36px;
+    font-size: 18px;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(90deg, #7048e8, #4263eb);
+    color: #fff;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(112,72,232,.4);
+  }
+  .start-btn:hover { transform: translateY(-2px); }
+  .over {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.75);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+    font-size: 24px;
+  }
+  .over.show { display: flex; }
+  .over h2 { font-size: 40px; color: #ffd43b; }
+</style>
+</head>
+<body>
+  <h1>🔨 打地鼠</h1>
+  <div class="info">
+    <div>得分：<span id="score">0</span></div>
+    <div>时间：<span id="time">30</span>s</div>
+  </div>
+  <div class="board" id="board"></div>
+  <button class="start-btn" id="startBtn">开始游戏</button>
 
-    /** 向服务器要"已通过审核"的游戏列表，然后画成卡片 */
-    async function loadGames() {
-      const grid = document.getElementById('gameGrid');
-      try {
-        const data = await api('/api/games');
-        const games = data.games || [];
+  <div class="over" id="over">
+    <h2>时间到！</h2>
+    <p>你的得分：<span id="finalScore" style="color:#ffd43b;font-weight:bold;">0</span></p>
+    <button class="start-btn" onclick="restart()">再玩一次</button>
+  </div>
 
-        document.getElementById('count').textContent = '（共 ' + games.length + ' 个）';
+<script>
+  const board = document.getElementById('board');
+  const scoreEl = document.getElementById('score');
+  const timeEl = document.getElementById('time');
+  const over = document.getElementById('over');
+  const startBtn = document.getElementById('startBtn');
 
-        if (games.length === 0) {
-          grid.innerHTML = '<div class="empty-tip">暂时还没有游戏，快来提交第一个吧！</div>';
-          return;
-        }
+  let score = 0, timeLeft = 30, timer = null, moleTimer = null, running = false;
 
-        // 拼出所有卡片。注意：用户输入的文字必须用 esc() 转义后再放到页面上
-        grid.innerHTML = games.map(g => {
-          const coverChar = g.title.charAt(0) || '🎮';
-          return (
-            '<div class="card" onclick="location.href=\'play.html?id=' + encodeURIComponent(g.id) + '\'">' +
-              '<div class="card-cover" style="background:' + esc(g.color) + '">' + esc(coverChar) + '</div>' +
-              '<div class="card-body">' +
-                '<div class="card-title">' + esc(g.title) + '</div>' +
-                '<div class="card-author">作者：' + esc(g.author) + '</div>' +
-                '<div class="card-desc">' + esc(g.description || '这个作者很懒，没有写简介。') + '</div>' +
-                '<span class="tag">' + esc(g.category || '其他') + '</span>' +
-              '</div>' +
-            '</div>'
-          );
-        }).join('');
-      } catch (e) {
-        grid.innerHTML = '<div class="empty-tip">加载失败：' + esc(e.message) + '<br>请确认服务器已经启动</div>';
+  // 生成 9 个洞
+  for (let i = 0; i < 9; i++) {
+    const hole = document.createElement('div');
+    hole.className = 'hole';
+    hole.innerHTML = '<div class="mole">🐹</div>';
+    hole.addEventListener('click', () => whack(hole));
+    board.appendChild(hole);
+  }
+
+  function whack(hole) {
+    if (!running || !hole.classList.contains('up') || hole.classList.contains('hit')) return;
+    score++;
+    scoreEl.textContent = score;
+    hole.classList.add('hit');
+    setTimeout(() => hole.classList.remove('hit', 'up'), 120);
+  }
+
+  function popMole() {
+    const holes = document.querySelectorAll('.hole');
+    // 随机选一个还没冒出地鼠的洞
+    const free = Array.from(holes).filter(h => !h.classList.contains('up'));
+    if (free.length === 0) return;
+    const hole = free[Math.floor(Math.random() * free.length)];
+    hole.classList.add('up');
+    // 地鼠冒出来 0.6~1 秒后自己缩回去
+    const dur = 600 + Math.random() * 400;
+    setTimeout(() => hole.classList.remove('up'), dur);
+  }
+
+  function startGame() {
+    score = 0;
+    timeLeft = 30;
+    scoreEl.textContent = 0;
+    timeEl.textContent = 30;
+    over.classList.remove('show');
+    startBtn.style.display = 'none';
+    running = true;
+
+    timer = setInterval(() => {
+      timeLeft--;
+      timeEl.textContent = timeLeft;
+      if (timeLeft <= 0) endGame();
+    }, 1000);
+
+    // 每隔 0.5 秒冒一只地鼠
+    moleTimer = setInterval(popMole, 500);
+  }
+
+  function endGame() {
+    running = false;
+    clearInterval(timer);
+    clearInterval(moleTimer);
+    document.querySelectorAll('.hole').forEach(h => h.classList.remove('up'));
+    document.getElementById('finalScore').textContent = score;
+    over.classList.add('show');
+    startBtn.style.display = 'block';
+  }
+
+  function restart() { startGame(); }
+
+  startBtn.addEventListener('click', startGame);
+<\/script>
+</body>
+</html>`
+},
+
+/* ---------------- 游戏 2：2048 ---------------- */
+{
+  title: '2048',
+  icon: '🔢',
+  tag: '益智 · 方向键',
+  desc: '方向键移动方块，相同数字相撞合并，合成 2048 即获胜！',
+  color: '#f59f00',
+  html: `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>2048</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #faf8ef;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: "Microsoft YaHei", sans-serif;
+    color: #776e65;
+    user-select: none;
+  }
+  h1 { font-size: 48px; margin-bottom: 12px; color: #776e65; }
+  .info { display: flex; gap: 14px; margin-bottom: 16px; align-items: center; }
+  .score-box {
+    background: #bbada0;
+    color: #fff;
+    padding: 8px 20px;
+    border-radius: 6px;
+    text-align: center;
+    min-width: 80px;
+  }
+  .score-box .label { font-size: 12px; text-transform: uppercase; opacity: .85; }
+  .score-box .val { font-size: 22px; font-weight: bold; }
+  .board {
+    background: #bbada0;
+    border-radius: 8px;
+    padding: 12px;
+    display: grid;
+    grid-template-columns: repeat(4, 80px);
+    grid-template-rows: repeat(4, 80px);
+    gap: 12px;
+    position: relative;
+  }
+  .cell {
+    background: rgba(238,228,218,.35);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    font-weight: bold;
+    color: #776e65;
+  }
+  .n2    { background: #eee4da; color: #776e65; }
+  .n4    { background: #ede0c8; color: #776e65; }
+  .n8    { background: #f2b179; color: #f9f6f2; }
+  .n16   { background: #f59563; color: #f9f6f2; }
+  .n32   { background: #f67c5f; color: #f9f6f2; }
+  .n64   { background: #f65e3b; color: #f9f6f2; }
+  .n128  { background: #edcf72; color: #f9f6f2; font-size: 26px; }
+  .n256  { background: #edcc61; color: #f9f6f2; font-size: 26px; }
+  .n512  { background: #edc850; color: #f9f6f2; font-size: 26px; }
+  .n1024 { background: #edc53f; color: #f9f6f2; font-size: 20px; }
+  .n2048 { background: #edc22e; color: #f9f6f2; font-size: 20px; }
+  .n4096 { background: #3c3a32; color: #f9f6f2; font-size: 20px; }
+  .tip { margin-top: 16px; font-size: 14px; color: #8f7a66; }
+  .restart {
+    margin-top: 14px;
+    padding: 10px 28px;
+    font-size: 16px;
+    border: none;
+    border-radius: 6px;
+    background: #8f7a66;
+    color: #f9f6f2;
+    cursor: pointer;
+  }
+  .overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(238,228,218,.73);
+    border-radius: 8px;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+  }
+  .overlay.show { display: flex; }
+  .overlay h2 { font-size: 40px; color: #776e65; }
+</style>
+</head>
+<body>
+  <h1>2048</h1>
+  <div class="info">
+    <div class="score-box"><div class="label">分数</div><div class="val" id="score">0</div></div>
+    <div class="score-box"><div class="label">最高</div><div class="val" id="best">0</div></div>
+  </div>
+  <div class="board" id="board">
+    <div class="overlay" id="overlay">
+      <h2 id="overText">游戏结束</h2>
+      <button class="restart" onclick="init()">再来一局</button>
+    </div>
+  </div>
+  <p class="tip">用 ↑ ↓ ← → 方向键移动方块，相同数字合并，合成 2048 获胜！</p>
+  <button class="restart" onclick="init()">重新开始</button>
+
+<script>
+  const board = document.getElementById('board');
+  const scoreEl = document.getElementById('score');
+  const bestEl = document.getElementById('best');
+  const overlay = document.getElementById('overlay');
+  const overText = document.getElementById('overText');
+
+  let grid, score, best = 0, over = false, won = false;
+  const cells = [];
+
+  // 创建 16 个格子
+  for (let i = 0; i < 16; i++) {
+    const c = document.createElement('div');
+    c.className = 'cell';
+    board.appendChild(c);
+    cells.push(c);
+  }
+
+  function init() {
+    grid = Array(16).fill(0);
+    score = 0;
+    over = false;
+    won = false;
+    overlay.classList.remove('show');
+    addRandom();
+    addRandom();
+    render();
+  }
+
+  // 随机在空格子里放一个 2（90%）或 4（10%）
+  function addRandom() {
+    const empty = [];
+    for (let i = 0; i < 16; i++) if (grid[i] === 0) empty.push(i);
+    if (empty.length === 0) return;
+    const idx = empty[Math.floor(Math.random() * empty.length)];
+    grid[idx] = Math.random() < 0.9 ? 2 : 4;
+  }
+
+  function render() {
+    scoreEl.textContent = score;
+    bestEl.textContent = best;
+    for (let i = 0; i < 16; i++) {
+      const v = grid[i];
+      cells[i].className = 'cell' + (v ? ' n' + v : '');
+      cells[i].textContent = v || '';
+    }
+  }
+
+  // 把一行/列向左压缩合并，返回新数组和获得的分数
+  function slide(row) {
+    let arr = row.filter(v => v);       // 去掉 0
+    let gained = 0;
+    for (let i = 0; i < arr.length - 1; i++) {
+      if (arr[i] === arr[i + 1]) {
+        arr[i] *= 2;
+        gained += arr[i];
+        if (arr[i] === 2048 && !won) { won = true; }
+        arr.splice(i + 1, 1);
       }
     }
+    while (arr.length < 4) arr.push(0);
+    return { row: arr, gained };
+  }
 
-    loadGames();
-  </script>
+  function move(dir) {
+    if (over) return;
+    const before = grid.join(',');
+    let totalGain = 0;
+
+    // 把 4x4 网格按方向拆成 4 行来处理
+    for (let i = 0; i < 4; i++) {
+      let idx;
+      if (dir === 'left')  idx = [i*4, i*4+1, i*4+2, i*4+3];
+      if (dir === 'right') idx = [i*4+3, i*4+2, i*4+1, i*4];
+      if (dir === 'up')    idx = [i, i+4, i+8, i+12];
+      if (dir === 'down')  idx = [i+12, i+8, i+4, i];
+
+      const row = idx.map(p => grid[p]);
+      const { row: nr, gained } = slide(row);
+      totalGain += gained;
+      idx.forEach((p, j) => grid[p] = nr[j]);
+    }
+
+    // 如果有变化，加分并生成新方块
+    if (grid.join(',') !== before) {
+      score += totalGain;
+      if (score > best) best = score;
+      addRandom();
+      render();
+      checkOver();
+    }
+  }
+
+  function checkOver() {
+    if (won) {
+      overText.textContent = '🎉 你赢了！合成 2048！';
+      overlay.classList.add('show');
+      over = true;
+      return;
+    }
+    // 还有空格就没结束
+    if (grid.includes(0)) return;
+    // 检查是否还能合并
+    for (let i = 0; i < 16; i++) {
+      const v = grid[i];
+      if ((i + 1) % 4 !== 0 && grid[i+1] === v) return;
+      if (i + 4 < 16 && grid[i+4] === v) return;
+    }
+    overText.textContent = '游戏结束';
+    overlay.classList.add('show');
+    over = true;
+  }
+
+  document.addEventListener('keydown', e => {
+    const map = { ArrowLeft:'left', ArrowRight:'right', ArrowUp:'up', ArrowDown:'down' };
+    if (map[e.key]) { e.preventDefault(); move(map[e.key]); }
+  });
+
+  init();
+<\/script>
+</body>
+</html>`
+},
+
+/* ---------------- 游戏 3：井字棋 ---------------- */
+{
+  title: '井字棋',
+  icon: '⭕',
+  tag: '益智 · 人机对战',
+  desc: '和电脑下井字棋，你执 X 先手，横/竖/斜三子连线即胜！',
+  color: '#e94560',
+  html: `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>井字棋</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: linear-gradient(135deg, #0f3460, #16213e);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: "Microsoft YaHei", sans-serif;
+    color: #fff;
+    user-select: none;
+  }
+  h1 { font-size: 32px; margin-bottom: 10px; }
+  .status { font-size: 18px; margin-bottom: 18px; height: 26px; }
+  .board {
+    display: grid;
+    grid-template-columns: repeat(3, 90px);
+    grid-template-rows: repeat(3, 90px);
+    gap: 8px;
+    background: #1a1a2e;
+    padding: 8px;
+    border-radius: 12px;
+  }
+  .cell {
+    background: #16213e;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 48px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .cell:hover:not(.taken) { background: #1f3460; }
+  .cell.x { color: #e94560; }
+  .cell.o { color: #00d4ff; }
+  .cell.win { background: #0f3460; animation: pulse .6s infinite alternate; }
+  @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.05); } }
+  .info { display: flex; gap: 30px; margin-top: 18px; font-size: 15px; }
+  .info span { color: #e94560; font-weight: bold; }
+  .info span.o { color: #00d4ff; }
+  button {
+    margin-top: 18px;
+    padding: 10px 28px;
+    font-size: 16px;
+    border: none;
+    border-radius: 8px;
+    background: #e94560;
+    color: #fff;
+    cursor: pointer;
+  }
+  button:hover { opacity: .85; }
+</style>
+</head>
+<body>
+  <h1>⭕ 井字棋 ❌</h1>
+  <div class="status" id="status">你是 X，先走一步！</div>
+  <div class="board" id="board"></div>
+  <div class="info">
+    <div>你 (X)：<span id="px">0</span> 胜</div>
+    <div>电脑 (O)：<span class="o" id="po">0</span> 胜</div>
+  </div>
+  <button onclick="reset()">重新开始</button>
+
+<script>
+  const board = document.getElementById('board');
+  const statusEl = document.getElementById('status');
+  const pxEl = document.getElementById('px');
+  const poEl = document.getElementById('po');
+  let cells, boardState, over, px = 0, po = 0;
+  const WINS = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+
+  function init() {
+    cells = [];
+    boardState = Array(9).fill('');
+    over = false;
+    board.innerHTML = '';
+    for (let i = 0; i < 9; i++) {
+      const c = document.createElement('div');
+      c.className = 'cell';
+      c.addEventListener('click', () => play(i));
+      board.appendChild(c);
+      cells.push(c);
+    }
+    statusEl.textContent = '你是 X，先走一步！';
+  }
+
+  function play(i) {
+    if (over || boardState[i] !== '') return;
+    boardState[i] = 'X';
+    cells[i].textContent = 'X';
+    cells[i].classList.add('x', 'taken');
+    if (checkWin('X')) return end('你赢了！🎉', 'X');
+    if (boardState.every(v => v)) return end('平局！', null);
+    statusEl.textContent = '电脑思考中...';
+    setTimeout(aiMove, 400);
+  }
+
+  // 简单 AI：优先赢，其次堵，否则随机
+  function aiMove() {
+    if (over) return;
+    let move = findWin('O') ?? findWin('X') ?? randomEmpty();
+    boardState[move] = 'O';
+    cells[move].textContent = 'O';
+    cells[move].classList.add('o', 'taken');
+    if (checkWin('O')) return end('电脑赢了！🤖', 'O');
+    if (boardState.every(v => v)) return end('平局！', null);
+    statusEl.textContent = '轮到你了，下 X';
+  }
+
+  function findWin(p) {
+    for (const [a, b, c] of WINS) {
+      const line = [boardState[a], boardState[b], boardState[c]];
+      if (line.filter(v => v === p).length === 2 && line.includes('')) {
+        return [a, b, c][line.indexOf('')];
+      }
+    }
+    return null;
+  }
+
+  function randomEmpty() {
+    const e = boardState.map((v, i) => v === '' ? i : -1).filter(i => i >= 0);
+    return e[Math.floor(Math.random() * e.length)];
+  }
+
+  function checkWin(p) {
+    for (const line of WINS) {
+      if (line.every(i => boardState[i] === p)) {
+        line.forEach(i => cells[i].classList.add('win'));
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function end(msg, winner) {
+    over = true;
+    statusEl.textContent = msg;
+    if (winner === 'X') { px++; pxEl.textContent = px; }
+    if (winner === 'O') { po++; poEl.textContent = po; }
+  }
+
+  function reset() { init(); }
+  init();
+<\/script>
+</body>
+</html>`
+},
+
+/* ---------------- 游戏 4：贪吃蛇 ---------------- */
+{
+  title: '贪吃蛇',
+  icon: '🐍',
+  tag: '动作 · 方向键',
+  desc: '方向键或 WASD 控制小蛇吃食物，越长越得分，别撞墙和自己！',
+  color: '#2f9e44',
+  html: `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>贪吃蛇</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1a2e;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: "Microsoft YaHei", sans-serif;
+    color: #fff;
+    user-select: none;
+  }
+  h1 { font-size: 30px; margin-bottom: 12px; color: #4ade80; }
+  .info { display: flex; gap: 24px; font-size: 18px; margin-bottom: 14px; }
+  .info span { color: #fbbf24; font-weight: bold; }
+  canvas {
+    background: #0f0f1e;
+    border: 2px solid #4ade80;
+    border-radius: 8px;
+    box-shadow: 0 0 20px rgba(74,222,128,.3);
+  }
+  .tip { margin-top: 14px; font-size: 14px; color: #94a3b8; }
+  button {
+    margin-top: 12px;
+    padding: 10px 28px;
+    font-size: 16px;
+    border: none;
+    border-radius: 8px;
+    background: #4ade80;
+    color: #0f0f1e;
+    cursor: pointer;
+    font-weight: bold;
+  }
+  button:hover { opacity: .85; }
+  .over {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.7);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .over.show { display: flex; }
+  .over h2 { font-size: 36px; color: #f87171; }
+</style>
+</head>
+<body>
+  <h1>🐍 贪吃蛇</h1>
+  <div class="info">
+    <div>得分：<span id="score">0</span></div>
+    <div>最高：<span id="best">0</span></div>
+  </div>
+  <canvas id="game" width="400" height="400"></canvas>
+  <p class="tip">用 ↑ ↓ ← → 或 W A S D 控制方向，吃到食物加分，撞墙或撞自己就死</p>
+  <button onclick="restart()">开始 / 重来</button>
+
+  <div class="over" id="over">
+    <h2>游戏结束</h2>
+    <p>得分：<span id="final" style="color:#fbbf24;font-weight:bold;font-size:24px;">0</span></p>
+    <button onclick="restart()">再来一局</button>
+  </div>
+
+<script>
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const SIZE = 20, COLS = canvas.width / SIZE, ROWS = canvas.height / SIZE;
+  let snake, dir, nextDir, food, score, best = 0, timer, over;
+
+  function init() {
+    snake = [{x: 10, y: 10}, {x: 9, y: 10}, {x: 8, y: 10}];
+    dir = {x: 1, y: 0};
+    nextDir = dir;
+    score = 0;
+    over = false;
+    document.getElementById('over').classList.remove('show');
+    placeFood();
+    updateScore();
+  }
+
+  function placeFood() {
+    while (true) {
+      const f = { x: Math.floor(Math.random() * COLS), y: Math.floor(Math.random() * ROWS) };
+      if (!snake.some(s => s.x === f.x && s.y === f.y)) { food = f; return; }
+    }
+  }
+
+  function updateScore() {
+    document.getElementById('score').textContent = score;
+    if (score > best) { best = score; document.getElementById('best').textContent = best; }
+  }
+
+  function tick() {
+    if (over) return;
+    dir = nextDir;
+    const head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
+
+    // 撞墙
+    if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS) return gameOver();
+    // 撞自己
+    if (snake.some(s => s.x === head.x && s.y === head.y)) return gameOver();
+
+    snake.unshift(head);
+    if (head.x === food.x && head.y === food.y) {
+      score += 10;
+      updateScore();
+      placeFood();
+    } else {
+      snake.pop();
+    }
+    draw();
+  }
+
+  function draw() {
+    ctx.fillStyle = '#0f0f1e';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // 食物
+    ctx.fillStyle = '#f87171';
+    ctx.beginPath();
+    ctx.arc(food.x * SIZE + SIZE/2, food.y * SIZE + SIZE/2, SIZE/2 - 2, 0, Math.PI*2);
+    ctx.fill();
+
+    // 蛇
+    snake.forEach((s, i) => {
+      ctx.fillStyle = i === 0 ? '#4ade80' : '#22c55e';
+      ctx.fillRect(s.x * SIZE + 1, s.y * SIZE + 1, SIZE - 2, SIZE - 2);
+    });
+  }
+
+  function gameOver() {
+    over = true;
+    clearInterval(timer);
+    document.getElementById('final').textContent = score;
+    document.getElementById('over').classList.add('show');
+  }
+
+  function restart() {
+    clearInterval(timer);
+    init();
+    draw();
+    timer = setInterval(tick, 110);
+  }
+
+  document.addEventListener('keydown', e => {
+    const k = e.key.toLowerCase();
+    if ((k === 'arrowup' || k === 'w') && dir.y !== 1) nextDir = {x:0,y:-1};
+    if ((k === 'arrowdown' || k === 's') && dir.y !== -1) nextDir = {x:0,y:1};
+    if ((k === 'arrowleft' || k === 'a') && dir.x !== 1) nextDir = {x:-1,y:0};
+    if ((k === 'arrowright' || k === 'd') && dir.x !== -1) nextDir = {x:1,y:0};
+  });
+
+  init();
+  draw();
+  timer = setInterval(tick, 110);
+<\/script>
+</body>
+</html>`
+},
+
+/* ---------------- 游戏 5：扫雷 ---------------- */
+{
+  title: '扫雷',
+  icon: '💣',
+  tag: '益智 · 左右键',
+  desc: '左键挖开格子，右键插旗标记地雷，找出全部 15 颗地雷获胜！',
+  color: '#f08c00',
+  html: `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>扫雷</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1e293b;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: "Microsoft YaHei", sans-serif;
+    color: #e2e8f0;
+    user-select: none;
+  }
+  h1 { font-size: 30px; margin-bottom: 14px; color: #fbbf24; }
+  .info { display: flex; gap: 24px; font-size: 18px; margin-bottom: 14px; }
+  .info span { color: #f87171; font-weight: bold; }
+  .board {
+    display: grid;
+    grid-template-columns: repeat(10, 34px);
+    gap: 2px;
+    background: #334155;
+    padding: 6px;
+    border-radius: 8px;
+  }
+  .cell {
+    width: 34px; height: 34px;
+    background: #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 18px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background .1s;
+  }
+  .cell:hover:not(.open) { background: #94a3b8; }
+  .cell.open { background: #1e293b; cursor: default; }
+  .cell.mine { background: #ef4444; }
+  .cell.flag::before { content: '🚩'; }
+  .n1 { color: #60a5fa; }
+  .n2 { color: #4ade80; }
+  .n3 { color: #f87171; }
+  .n4 { color: #a78bfa; }
+  .n5 { color: #fb923c; }
+  .n6 { color: #22d3ee; }
+  .n7 { color: #e2e8f0; }
+  .n8 { color: #94a3b8; }
+  .tip { margin-top: 14px; font-size: 14px; color: #94a3b8; text-align: center; line-height: 1.8; }
+  button {
+    margin-top: 14px;
+    padding: 10px 28px;
+    font-size: 16px;
+    border: none;
+    border-radius: 8px;
+    background: #fbbf24;
+    color: #1e293b;
+    cursor: pointer;
+    font-weight: bold;
+  }
+  button:hover { opacity: .85; }
+  .over { margin-top: 16px; font-size: 22px; font-weight: bold; min-height: 30px; }
+  .win { color: #4ade80; }
+  .lose { color: #f87171; }
+</style>
+</head>
+<body>
+  <h1>💣 扫雷</h1>
+  <div class="info">
+    <div>剩余地雷：<span id="mines">15</span></div>
+    <div>用时：<span id="time">0</span>s</div>
+  </div>
+  <div class="board" id="board" oncontextmenu="return false;"></div>
+  <p class="tip">左键挖开格子，右键插旗标记地雷<br>数字表示周围 8 格里有几个地雷</p>
+  <button onclick="init()">重新开始</button>
+  <div class="over" id="overMsg"></div>
+
+<script>
+  const board = document.getElementById('board');
+  const minesEl = document.getElementById('mines');
+  const timeEl = document.getElementById('time');
+  const overMsg = document.getElementById('overMsg');
+  const W = 10, H = 10, MINE_COUNT = 15;
+  let grid, opened, flagged, over, firstClick, timer, seconds;
+
+  function init() {
+    grid = [];
+    opened = Array.from({length: H}, () => Array(W).fill(false));
+    flagged = Array.from({length: H}, () => Array(W).fill(false));
+    over = false;
+    firstClick = true;
+    seconds = 0;
+    timeEl.textContent = 0;
+    overMsg.textContent = '';
+    overMsg.className = 'over';
+    minesEl.textContent = MINE_COUNT;
+    clearInterval(timer);
+
+    // 初始化空网格（第一次点击后才布雷，保证第一下安全）
+    for (let y = 0; y < H; y++) {
+      grid[y] = [];
+      for (let x = 0; x < W; x++) grid[y][x] = 0;
+    }
+    render();
+  }
+
+  function placeMines(safeX, safeY) {
+    let placed = 0;
+    while (placed < MINE_COUNT) {
+      const x = Math.floor(Math.random() * W);
+      const y = Math.floor(Math.random() * H);
+      // 不在第一次点击的位置及其周围布雷
+      if (Math.abs(x - safeX) <= 1 && Math.abs(y - safeY) <= 1) continue;
+      if (grid[y][x] === -1) continue;
+      grid[y][x] = -1;
+      placed++;
+    }
+    // 计算每个格子周围的地雷数
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        if (grid[y][x] === -1) continue;
+        let n = 0;
+        for (let dy = -1; dy <= 1; dy++)
+          for (let dx = -1; dx <= 1; dx++) {
+            const nx = x+dx, ny = y+dy;
+            if (nx>=0 && nx<W && ny>=0 && ny<H && grid[ny][nx] === -1) n++;
+          }
+        grid[y][x] = n;
+      }
+    }
+  }
+
+  function render() {
+    board.innerHTML = '';
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const c = document.createElement('div');
+        c.className = 'cell';
+        if (opened[y][x]) {
+          c.classList.add('open');
+          if (grid[y][x] === -1) { c.classList.add('mine'); c.textContent = '💣'; }
+          else if (grid[y][x] > 0) { c.textContent = grid[y][x]; c.classList.add('n' + grid[y][x]); }
+        } else if (flagged[y][x]) {
+          c.classList.add('flag');
+        }
+        c.addEventListener('click', () => open(x, y));
+        c.addEventListener('contextmenu', e => { e.preventDefault(); toggleFlag(x, y); });
+        board.appendChild(c);
+      }
+    }
+  }
+
+  function open(x, y) {
+    if (over || opened[y][x] || flagged[y][x]) return;
+    if (firstClick) {
+      placeMines(x, y);
+      firstClick = false;
+      timer = setInterval(() => { seconds++; timeEl.textContent = seconds; }, 1000);
+    }
+    opened[y][x] = true;
+    if (grid[y][x] === -1) return gameOver(false);
+    // 空格：自动展开周围
+    if (grid[y][x] === 0) {
+      for (let dy = -1; dy <= 1; dy++)
+        for (let dx = -1; dx <= 1; dx++) {
+          const nx = x+dx, ny = y+dy;
+          if (nx>=0 && nx<W && ny>=0 && ny<H && !opened[ny][nx]) open(nx, ny);
+        }
+    }
+    render();
+    checkWin();
+  }
+
+  function toggleFlag(x, y) {
+    if (over || opened[y][x]) return;
+    flagged[y][x] = !flagged[y][x];
+    const flagCount = flagged.flat().filter(Boolean).length;
+    minesEl.textContent = MINE_COUNT - flagCount;
+    render();
+  }
+
+  function checkWin() {
+    let unopened = 0;
+    for (let y = 0; y < H; y++)
+      for (let x = 0; x < W; x++)
+        if (!opened[y][x]) unopened++;
+    if (unopened === MINE_COUNT) gameOver(true);
+  }
+
+  function gameOver(won) {
+    over = true;
+    clearInterval(timer);
+    // 显示所有地雷
+    for (let y = 0; y < H; y++)
+      for (let x = 0; x < W; x++)
+        if (grid[y][x] === -1) opened[y][x] = true;
+    render();
+    overMsg.textContent = won ? '🎉 恭喜，扫雷成功！' : '💥 踩到地雷了！';
+    overMsg.className = 'over ' + (won ? 'win' : 'lose');
+  }
+
+  init();
+<\/script>
+</body>
+</html>`
+},
+
+/* ---------------- 游戏 6：记忆翻牌 ---------------- */
+{
+  title: '记忆翻牌',
+  icon: '🃏',
+  tag: '益智 · 记忆力',
+  desc: '翻开卡片找出相同的动物图案，用最少步数和时间全部配对！',
+  color: '#9c36b5',
+  html: `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>记忆翻牌</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: linear-gradient(135deg, #4c1d95, #1e1b4b);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: "Microsoft YaHei", sans-serif;
+    color: #fff;
+    user-select: none;
+  }
+  h1 { font-size: 30px; margin-bottom: 12px; }
+  .info { display: flex; gap: 26px; font-size: 17px; margin-bottom: 16px; }
+  .info span { color: #fbbf24; font-weight: bold; }
+  .board {
+    display: grid;
+    grid-template-columns: repeat(4, 82px);
+    gap: 12px;
+  }
+  .card {
+    width: 82px; height: 82px;
+    perspective: 600px;
+    cursor: pointer;
+  }
+  .card-inner {
+    position: relative;
+    width: 100%; height: 100%;
+    transition: transform .4s;
+    transform-style: preserve-3d;
+  }
+  /* 翻开或配对成功时翻转 */
+  .card.flipped .card-inner,
+  .card.matched .card-inner { transform: rotateY(180deg); }
+  .card-front, .card-back {
+    position: absolute;
+    inset: 0;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    backface-visibility: hidden;
+  }
+  .card-front {
+    background: linear-gradient(135deg, #7c3aed, #4f46e5);
+    font-size: 34px;
+    box-shadow: 0 4px 10px rgba(0,0,0,.3);
+  }
+  .card-front:hover { filter: brightness(1.15); }
+  .card-back {
+    background: #f5f3ff;
+    transform: rotateY(180deg);
+  }
+  /* 配对成功的卡片变绿 */
+  .card.matched .card-back { background: #bbf7d0; }
+  .tip { margin-top: 18px; font-size: 14px; color: #c4b5fd; }
+  button {
+    margin-top: 12px;
+    padding: 10px 28px;
+    font-size: 16px;
+    border: none;
+    border-radius: 8px;
+    background: #fbbf24;
+    color: #1e1b4b;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  button:hover { opacity: .85; }
+  .win-msg {
+    margin-top: 14px;
+    font-size: 22px;
+    font-weight: bold;
+    color: #4ade80;
+    min-height: 30px;
+  }
+</style>
+</head>
+<body>
+  <h1>🃏 记忆翻牌</h1>
+  <div class="info">
+    <div>翻牌次数：<span id="moves">0</span></div>
+    <div>用时：<span id="time">0</span>s</div>
+    <div>已配对：<span id="pairs">0</span>/8</div>
+  </div>
+  <div class="board" id="board"></div>
+  <div class="win-msg" id="winMsg"></div>
+  <button onclick="init()">重新开始</button>
+  <p class="tip">每次翻开两张牌，图案相同就配对成功，全部配对即获胜！</p>
+
+<script>
+  const board = document.getElementById('board');
+  const movesEl = document.getElementById('moves');
+  const timeEl = document.getElementById('time');
+  const pairsEl = document.getElementById('pairs');
+  const winMsg = document.getElementById('winMsg');
+
+  // 8 种动物图案，每种出现 2 次
+  const EMOJIS = ['🐶','🐱','🦊','🐼','🐸','🐵','🐰','🦁'];
+
+  let order;          // 16 张牌的图案顺序
+  let flipped;        // 当前翻开的牌（最多 2 张）
+  let lock;           // 判断两张牌是否正在处理中（防止乱点）
+  let moves;          // 翻牌次数
+  let matchedPairs;   // 已配对数
+  let seconds, timer, started;
+
+  // 洗牌：把数组随机打乱
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  function init() {
+    order = shuffle(EMOJIS.concat(EMOJIS));  // 每种图案复制成两张再洗
+    flipped = [];
+    lock = false;
+    moves = 0;
+    matchedPairs = 0;
+    seconds = 0;
+    started = false;
+    clearInterval(timer);
+    movesEl.textContent = 0;
+    timeEl.textContent = 0;
+    pairsEl.textContent = 0;
+    winMsg.textContent = '';
+    render();
+  }
+
+  function render() {
+    board.innerHTML = '';
+    order.forEach((emoji, i) => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML =
+        '<div class="card-inner">' +
+          '<div class="card-front">❓</div>' +
+          '<div class="card-back">' + emoji + '</div>' +
+        '</div>';
+      card.addEventListener('click', () => flip(i, card));
+      board.appendChild(card);
+    });
+  }
+
+  function flip(i, cardEl) {
+    // 正在判定、已经翻开、已经配对的牌不能再点
+    if (lock || cardEl.classList.contains('flipped') || cardEl.classList.contains('matched')) return;
+
+    // 第一次翻牌时开始计时
+    if (!started) {
+      started = true;
+      timer = setInterval(() => { seconds++; timeEl.textContent = seconds; }, 1000);
+    }
+
+    cardEl.classList.add('flipped');
+    flipped.push({ i, el: cardEl });
+
+    // 翻开第二张时判定是否相同
+    if (flipped.length === 2) {
+      moves++;
+      movesEl.textContent = moves;
+      lock = true;   // 锁定，等判定结束才能继续点
+
+      const [a, b] = flipped;
+      if (order[a.i] === order[b.i]) {
+        // 图案相同：配对成功
+        setTimeout(() => {
+          a.el.classList.add('matched');
+          b.el.classList.add('matched');
+          matchedPairs++;
+          pairsEl.textContent = matchedPairs;
+          flipped = [];
+          lock = false;
+          if (matchedPairs === 8) win();
+        }, 350);
+      } else {
+        // 图案不同：停顿一下翻回去
+        setTimeout(() => {
+          a.el.classList.remove('flipped');
+          b.el.classList.remove('flipped');
+          flipped = [];
+          lock = false;
+        }, 800);
+      }
+    }
+  }
+
+  function win() {
+    clearInterval(timer);
+    winMsg.textContent = '🎉 全部配对！用了 ' + moves + ' 步、' + seconds + ' 秒';
+  }
+
+  init();
+<\/script>
+</body>
+</html>`
+},
+
+/* ---------------- 游戏 7：俄罗斯方块 ---------------- */
+{
+  title: '俄罗斯方块',
+  icon: '🟦',
+  tag: '动作 · 方向键',
+  desc: '经典俄罗斯方块！移动旋转方块填满整行消除，等级越高速度越快。',
+  color: '#1c7ed6',
+  html: `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>俄罗斯方块</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0f172a;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: "Microsoft YaHei", sans-serif;
+    color: #e2e8f0;
+    user-select: none;
+  }
+  h1 { font-size: 28px; margin-bottom: 12px; color: #38bdf8; }
+  .wrap { display: flex; gap: 20px; align-items: flex-start; }
+  canvas {
+    background: #1e293b;
+    border: 2px solid #38bdf8;
+    border-radius: 8px;
+    box-shadow: 0 0 18px rgba(56,189,248,.25);
+  }
+  .side { font-size: 15px; line-height: 2; padding-top: 8px; }
+  .side b { color: #fbbf24; font-size: 20px; }
+  .tip { margin-top: 14px; font-size: 13px; color: #94a3b8; text-align: center; line-height: 1.8; }
+  button {
+    margin-top: 10px;
+    padding: 9px 24px;
+    font-size: 15px;
+    border: none;
+    border-radius: 8px;
+    background: #38bdf8;
+    color: #0f172a;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  button:hover { opacity: .85; }
+</style>
+</head>
+<body>
+  <h1>🟦 俄罗斯方块</h1>
+  <div class="wrap">
+    <canvas id="game" width="260" height="520"></canvas>
+    <div class="side">
+      得分：<b id="score">0</b><br>
+      消行：<b id="lines">0</b><br>
+      等级：<b id="level">1</b><br>
+      <button onclick="restart()">重新开始</button>
+    </div>
+  </div>
+  <p class="tip">← → 左右移动 ｜ ↑ 旋转 ｜ ↓ 加速下落 ｜ 空格直接落底<br>先点一下游戏区域获取键盘焦点</p>
+
+<script>
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+
+  const COLS = 10, ROWS = 20, SIZE = 26;
+
+  // 7 种经典方块形状（1 表示有方块）
+  const SHAPES = {
+    I: [[1,1,1,1]],
+    O: [[1,1],[1,1]],
+    T: [[0,1,0],[1,1,1]],
+    S: [[0,1,1],[1,1,0]],
+    Z: [[1,1,0],[0,1,1]],
+    J: [[1,0,0],[1,1,1]],
+    L: [[0,0,1],[1,1,1]]
+  };
+  // 每种方块的颜色
+  const COLORS = {
+    I: '#22d3ee', O: '#facc15', T: '#c084fc',
+    S: '#4ade80', Z: '#f87171', J: '#60a5fa', L: '#fb923c'
+  };
+
+  let grid;          // 20 行 10 列的场地，存颜色或 null
+  let piece;         // 当前方块 { shape, color, x, y }
+  let score, lines, level;
+  let over;
+  let dropInterval;  // 下落间隔（毫秒），等级越高越快
+  let lastTime, dropTimer, rafId;
+
+  function newGrid() {
+    return Array.from({ length: ROWS }, () => Array(COLS).fill(null));
+  }
+
+  // 随机生成一个新方块，从顶部中间出现
+  function spawn() {
+    const keys = Object.keys(SHAPES);
+    const name = keys[Math.floor(Math.random() * keys.length)];
+    const shape = SHAPES[name].map(row => row.slice());
+    piece = {
+      shape: shape,
+      color: COLORS[name],
+      x: Math.floor((COLS - shape[0].length) / 2),
+      y: 0
+    };
+    // 一出现就碰撞，说明顶部堆满了 → 游戏结束
+    if (collide(piece.shape, piece.x, piece.y)) gameOver();
+  }
+
+  // 检查形状放在 (x,y) 是否会碰撞（出界或压到已有方块）
+  function collide(shape, x, y) {
+    for (let r = 0; r < shape.length; r++) {
+      for (let c = 0; c < shape[r].length; c++) {
+        if (!shape[r][c]) continue;
+        const nx = x + c, ny = y + r;
+        if (nx < 0 || nx >= COLS || ny >= ROWS) return true;   // 左右或底部出界
+        if (ny >= 0 && grid[ny][nx]) return true;              // 压到方块
+      }
+    }
+    return false;
+  }
+
+  // 把当前方块固定到场地里
+  function merge() {
+    piece.shape.forEach((row, r) => {
+      row.forEach((v, c) => {
+        if (v && piece.y + r >= 0) grid[piece.y + r][piece.x + c] = piece.color;
+      });
+    });
+  }
+
+  // 消掉填满的整行
+  function clearLines() {
+    let cleared = 0;
+    for (let r = ROWS - 1; r >= 0; r--) {
+      if (grid[r].every(v => v)) {
+        grid.splice(r, 1);                    // 删除这一行
+        grid.unshift(Array(COLS).fill(null)); // 顶部补一空行
+        cleared++;
+        r++;                                   // 同一位置要重新检查
+      }
+    }
+    if (cleared > 0) {
+      // 一次消的行越多，得分越高（再乘上等级）
+      const points = [0, 100, 300, 500, 800][cleared] * level;
+      score += points;
+      lines += cleared;
+      level = Math.floor(lines / 10) + 1;                 // 每消 10 行升一级
+      dropInterval = Math.max(120, 800 - (level - 1) * 70); // 升级后下落更快
+      updateInfo();
+    }
+  }
+
+  function move(dx) {
+    if (!collide(piece.shape, piece.x + dx, piece.y)) piece.x += dx;
+  }
+
+  // 下落一格；落到底时固定并生成新方块
+  function drop() {
+    if (!collide(piece.shape, piece.x, piece.y + 1)) {
+      piece.y++;
+    } else {
+      merge();
+      clearLines();
+      spawn();
+    }
+    dropTimer = 0;
+  }
+
+  // 空格：直接落到底
+  function hardDrop() {
+    while (!collide(piece.shape, piece.x, piece.y + 1)) piece.y++;
+    drop();
+  }
+
+  // 旋转矩阵 90 度
+  function rotateMatrix(m) {
+    const rows = m.length, cols = m[0].length;
+    const result = Array.from({ length: cols }, () => Array(rows).fill(0));
+    for (let r = 0; r < rows; r++)
+      for (let c = 0; c < cols; c++)
+        result[c][rows - 1 - r] = m[r][c];
+    return result;
+  }
+
+  // 旋转，如果靠墙就尝试左右挪一下（简单的"墙踢"）
+  function rotatePiece() {
+    const rotated = rotateMatrix(piece.shape);
+    const kicks = [0, -1, 1, -2, 2];
+    for (const k of kicks) {
+      if (!collide(rotated, piece.x + k, piece.y)) {
+        piece.shape = rotated;
+        piece.x += k;
+        return;
+      }
+    }
+  }
+
+  function draw() {
+    // 背景
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // 网格线（淡淡的）
+    ctx.strokeStyle = 'rgba(148,163,184,.12)';
+    for (let x = 0; x <= COLS; x++) {
+      ctx.beginPath(); ctx.moveTo(x*SIZE, 0); ctx.lineTo(x*SIZE, ROWS*SIZE); ctx.stroke();
+    }
+    for (let y = 0; y <= ROWS; y++) {
+      ctx.beginPath(); ctx.moveTo(0, y*SIZE); ctx.lineTo(COLS*SIZE, y*SIZE); ctx.stroke();
+    }
+
+    // 已固定的方块
+    grid.forEach((row, r) => {
+      row.forEach((color, c) => {
+        if (color) drawBlock(c, r, color);
+      });
+    });
+
+    // 当前正在下落的方块
+    piece.shape.forEach((row, r) => {
+      row.forEach((v, c) => {
+        if (v) drawBlock(piece.x + c, piece.y + r, piece.color);
+      });
+    });
+
+    if (over) {
+      ctx.fillStyle = 'rgba(0,0,0,.7)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#f87171';
+      ctx.font = 'bold 32px "Microsoft YaHei"';
+      ctx.textAlign = 'center';
+      ctx.fillText('游戏结束', canvas.width/2, canvas.height/2 - 10);
+      ctx.fillStyle = '#e2e8f0';
+      ctx.font = '16px "Microsoft YaHei"';
+      ctx.fillText('点击"重新开始"再来一局', canvas.width/2, canvas.height/2 + 26);
+    }
+  }
+
+  // 画一个带高光的小方块
+  function drawBlock(c, r, color) {
+    const x = c * SIZE, y = r * SIZE;
+    ctx.fillStyle = color;
+    ctx.fillRect(x + 1, y + 1, SIZE - 2, SIZE - 2);
+    // 高光边框，让方块有立体感
+    ctx.fillStyle = 'rgba(255,255,255,.25)';
+    ctx.fillRect(x + 1, y + 1, SIZE - 2, 3);
+    ctx.fillRect(x + 1, y + 1, 3, SIZE - 2);
+  }
+
+  function updateInfo() {
+    document.getElementById('score').textContent = score;
+    document.getElementById('lines').textContent = lines;
+    document.getElementById('level').textContent = level;
+  }
+
+  function gameOver() {
+    over = true;
+    cancelAnimationFrame(rafId);
+    draw();
+  }
+
+  // 主循环：根据经过的时间决定什么时候自动下落
+  function loop(time) {
+    if (over) return;
+    const delta = time - lastTime;
+    lastTime = time;
+    dropTimer += delta;
+    if (dropTimer > dropInterval) drop();
+    draw();
+    rafId = requestAnimationFrame(loop);
+  }
+
+  function start() {
+    grid = newGrid();
+    score = 0; lines = 0; level = 1;
+    over = false;
+    dropInterval = 800;
+    dropTimer = 0;
+    lastTime = performance.now();
+    updateInfo();
+    spawn();
+    cancelAnimationFrame(rafId);
+    rafId = requestAnimationFrame(loop);
+  }
+
+  function restart() { start(); }
+
+  // 键盘控制（按方向键时阻止页面滚动）
+  document.addEventListener('keydown', e => {
+    if (over) return;
+    switch (e.key) {
+      case 'ArrowLeft':  e.preventDefault(); move(-1); break;
+      case 'ArrowRight': e.preventDefault(); move(1); break;
+      case 'ArrowDown':  e.preventDefault(); drop(); break;
+      case 'ArrowUp':    e.preventDefault(); rotatePiece(); break;
+      case ' ':          e.preventDefault(); hardDrop(); break;
+    }
+  });
+
+  start();
+<\/script>
+</body>
+</html>`
+},
+
+/* ---------------- 游戏 8：接金币 ---------------- */
+{
+  title: '接金币',
+  icon: '🪙',
+  tag: '休闲 · 反应',
+  desc: '移动篮子接住金币和星星加分，千万别接炸弹，三条命用完即结束！',
+  color: '#f08c00',
+  html: `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>接金币</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: linear-gradient(180deg, #0ea5e9, #1e3a8a);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: "Microsoft YaHei", sans-serif;
+    color: #fff;
+    user-select: none;
+  }
+  h1 { font-size: 28px; margin-bottom: 10px; }
+  .info { display: flex; gap: 28px; font-size: 18px; margin-bottom: 12px; }
+  .info .gold { color: #fde047; font-weight: bold; }
+  canvas {
+    background: linear-gradient(180deg, #38bdf8, #0369a1);
+    border: 2px solid #fde047;
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(253,224,71,.3);
+    cursor: none;
+  }
+  .tip { margin-top: 14px; font-size: 14px; color: #dbeafe; text-align: center; line-height: 1.8; }
+  button {
+    margin-top: 10px;
+    padding: 10px 28px;
+    font-size: 16px;
+    border: none;
+    border-radius: 8px;
+    background: #fde047;
+    color: #1e3a8a;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  button:hover { opacity: .85; }
+</style>
+</head>
+<body>
+  <h1>🪙 接金币</h1>
+  <div class="info">
+    <div>得分：<span class="gold" id="score">0</span></div>
+    <div>生命：<span id="lives">❤️❤️❤️</span></div>
+  </div>
+  <canvas id="game" width="460" height="540"></canvas>
+  <p class="tip">← → 方向键（或移动鼠标）控制篮子<br>🪙金币 +10 分　⭐星星 +30 分　💣炸弹碰到扣一条命！</p>
+  <button onclick="restart()">开始 / 重来</button>
+
+<script>
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+
+  const GROUND = H - 46;   // 篮子所在的高度
+
+  let basket;     // 篮子 { x }
+  let items;      // 天上掉下的东西数组
+  let score, lives, over;
+  let keys;       // 当前按下的方向键
+  let spawnTimer; // 距离下一个掉落物的时间
+  let rafId, lastTime;
+
+  function init() {
+    basket = { x: W / 2, w: 76, h: 34, speed: 7 };
+    items = [];
+    score = 0;
+    lives = 3;
+    over = false;
+    keys = { left: false, right: false };
+    spawnTimer = 0;
+    updateInfo();
+  }
+
+  function updateInfo() {
+    document.getElementById('score').textContent = score;
+    document.getElementById('lives').textContent = '❤️'.repeat(lives) || '💔';
+  }
+
+  // 生成一个掉落物：大部分是金币，少量星星和炸弹
+  function spawnItem() {
+    const r = Math.random();
+    let type;
+    if (r < 0.62) type = 'coin';
+    else if (r < 0.82) type = 'star';
+    else type = 'bomb';
+
+    items.push({
+      x: 30 + Math.random() * (W - 60),
+      y: -30,
+      type: type,
+      speed: 2.2 + Math.random() * 1.8 + score / 400  // 分数越高掉得越快
+    });
+  }
+
+  function update(dt) {
+    // 篮子左右移动
+    if (keys.left) basket.x -= basket.speed;
+    if (keys.right) basket.x += basket.speed;
+    basket.x = Math.max(basket.w/2, Math.min(W - basket.w/2, basket.x));
+
+    // 每隔一段时间生成一个掉落物（分数越高出现越频繁）
+    spawnTimer += dt;
+    const interval = Math.max(350, 850 - score * 1.5);
+    if (spawnTimer > interval) {
+      spawnItem();
+      spawnTimer = 0;
+    }
+
+    // 下落与接住判定
+    for (let i = items.length - 1; i >= 0; i--) {
+      const it = items[i];
+      it.y += it.speed * dt / 16;
+
+      // 是否落进篮子：高度到达篮子口，且横向在篮子范围内
+      const caught = it.y + 18 >= GROUND && it.y < GROUND + 20 &&
+                     Math.abs(it.x - basket.x) < basket.w / 2;
+      if (caught) {
+        if (it.type === 'coin') score += 10;
+        else if (it.type === 'star') score += 30;
+        else { lives--; flash(); }            // 接到炸弹扣命
+        items.splice(i, 1);
+        updateInfo();
+        if (lives <= 0) gameOver();
+        continue;
+      }
+
+      // 掉出屏幕就移除（漏掉金币不扣命）
+      if (it.y > H + 30) items.splice(i, 1);
+    }
+  }
+
+  // 被炸弹炸到时红屏闪一下
+  let flashTime = 0;
+  function flash() { flashTime = 250; }
+
+  function draw() {
+    // 背景
+    const bg = ctx.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, '#7dd3fc');
+    bg.addColorStop(1, '#0369a1');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+
+    // 底部地面
+    ctx.fillStyle = '#14532d';
+    ctx.fillRect(0, GROUND + 30, W, H - GROUND - 30);
+
+    // 掉落物（用 emoji 画）
+    ctx.font = '34px sans-serif';
+    ctx.textAlign = 'center';
+    items.forEach(it => {
+      const emoji = it.type === 'coin' ? '🪙' : it.type === 'star' ? '⭐' : '💣';
+      ctx.fillText(emoji, it.x, it.y + 10);
+    });
+
+    // 篮子：画一个梯形
+    ctx.fillStyle = '#b45309';
+    ctx.beginPath();
+    ctx.moveTo(basket.x - basket.w/2, GROUND);
+    ctx.lineTo(basket.x + basket.w/2, GROUND);
+    ctx.lineTo(basket.x + basket.w/2 - 12, GROUND + basket.h);
+    ctx.lineTo(basket.x - basket.w/2 + 12, GROUND + basket.h);
+    ctx.closePath();
+    ctx.fill();
+    // 篮子提手
+    ctx.strokeStyle = '#92400e';
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.arc(basket.x, GROUND, basket.w/2 - 6, Math.PI, 0);
+    ctx.stroke();
+
+    // 被炸到的红屏效果
+    if (flashTime > 0) {
+      ctx.fillStyle = 'rgba(239,68,68,' + (flashTime / 250) * 0.45 + ')';
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    if (over) {
+      ctx.fillStyle = 'rgba(0,0,0,.7)';
+      ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = '#fde047';
+      ctx.font = 'bold 36px "Microsoft YaHei"';
+      ctx.textAlign = 'center';
+      ctx.fillText('游戏结束', W/2, H/2 - 14);
+      ctx.fillStyle = '#fff';
+      ctx.font = '20px "Microsoft YaHei"';
+      ctx.fillText('最终得分：' + score, W/2, H/2 + 24);
+    }
+  }
+
+  function loop(time) {
+    if (over) return;
+    const dt = Math.min(50, time - lastTime);
+    lastTime = time;
+    if (flashTime > 0) flashTime -= dt;
+    update(dt);
+    draw();
+    rafId = requestAnimationFrame(loop);
+  }
+
+  function gameOver() {
+    over = true;
+    cancelAnimationFrame(rafId);
+    draw();
+  }
+
+  function start() {
+    init();
+    lastTime = performance.now();
+    cancelAnimationFrame(rafId);
+    rafId = requestAnimationFrame(loop);
+  }
+  function restart() { start(); }
+
+  // 键盘控制
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowLeft') { keys.left = true; e.preventDefault(); }
+    if (e.key === 'ArrowRight') { keys.right = true; e.preventDefault(); }
+  });
+  document.addEventListener('keyup', e => {
+    if (e.key === 'ArrowLeft') keys.left = false;
+    if (e.key === 'ArrowRight') keys.right = false;
+  });
+
+  // 鼠标控制：鼠标移到哪里，篮子就跟到哪里
+  canvas.addEventListener('mousemove', e => {
+    const rect = canvas.getBoundingClientRect();
+    basket.x = (e.clientX - rect.left) * (W / rect.width);
+  });
+
+  start();
+<\/script>
+</body>
+</html>`
+},
+
+/* ---------------- 游戏 9：打砖块（官方示例） ---------------- */
+{
+  title: '打砖块',
+  icon: '🧱',
+  tag: '动作 · 鼠标',
+  desc: '移动鼠标控制底部挡板，反弹小球打掉上方所有砖块即获胜！',
+  color: '#1971c2',
+  html: `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><style>
+  body{margin:0;background:#0d1230;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#8ecbff}
+  canvas{background:#050818;border:3px solid #4da3ff;border-radius:8px}
+  p{margin:8px}
+</style></head>
+<body>
+<p><b>打砖块</b> —— 移动鼠标控制挡板，把所有砖块打完就赢</p>
+<canvas id="c" width="420" height="400"></canvas>
+<script>
+  var cv = document.getElementById('c');
+  var ctx = cv.getContext('2d');
+  var paddle = {x:160,w:100,h:12};
+  var ball = {x:210,y:300,r:8,dx:4,dy:-4};
+  var bricks = [], rows = 4, cols = 8, bw = 44, bh = 16, alive = true, win = false;
+  for(var r = 0; r < rows; r++){
+    for(var c = 0; c < cols; c++){
+      bricks.push({x:10+c*50, y:40+r*22, alive:true});
+    }
+  }
+  cv.onmousemove = function(e){
+    var rect = cv.getBoundingClientRect();
+    paddle.x = e.clientX - rect.left - paddle.w/2;
+  };
+  setInterval(function(){
+    if(!alive || win) return;
+    ball.x += ball.dx; ball.y += ball.dy;
+    if(ball.x < ball.r || ball.x > 420-ball.r) ball.dx = -ball.dx;
+    if(ball.y < ball.r) ball.dy = -ball.dy;
+    if(ball.y > 380 && ball.x > paddle.x && ball.x < paddle.x+paddle.w) ball.dy = -Math.abs(ball.dy);
+    if(ball.y > 410) alive = false;
+    var left = 0;
+    for(var i = 0; i < bricks.length; i++){
+      var b = bricks[i];
+      if(!b.alive) continue;
+      left++;
+      if(ball.x > b.x && ball.x < b.x+bw && ball.y > b.y && ball.y < b.y+bh){
+        b.alive = false; ball.dy = -ball.dy;
+      }
+    }
+    if(left === 0) win = true;
+    ctx.fillStyle = '#050818'; ctx.fillRect(0,0,420,400);
+    ctx.fillStyle = '#ff8a4d';
+    for(var j = 0; j < bricks.length; j++){
+      if(bricks[j].alive) ctx.fillRect(bricks[j].x, bricks[j].y, bw, bh);
+    }
+    ctx.fillStyle = '#8ecbff'; ctx.fillRect(paddle.x, 380, paddle.w, paddle.h);
+    ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, 7); ctx.fill();
+    if(!alive){ ctx.fillStyle = '#ff5555'; ctx.font='30px sans-serif'; ctx.fillText('游戏结束',140,200); }
+    if(win){ ctx.fillStyle = '#7fff70'; ctx.font='30px sans-serif'; ctx.fillText('你赢了！',150,200); }
+  }, 16);
+<\/script>
+</body>
+</html>`
+}
+
+];
+
+/* ============================================================
+   以下是合集页面本身的逻辑：生成卡片、打开/关闭游戏
+   ============================================================ */
+
+// 生成 9 张游戏卡片
+var grid = document.getElementById('grid');
+GAMES.forEach(function (g, i) {
+  var card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML =
+    '<div class="card-icon">' + g.icon + '</div>' +
+    '<div class="card-title">' + g.title + '</div>' +
+    '<span class="card-tag">' + g.tag + '</span>' +
+    '<div class="card-desc">' + g.desc + '</div>' +
+    '<div class="card-play">▶ 点击开始玩</div>';
+  card.addEventListener('click', function () { openGame(i); });
+  grid.appendChild(card);
+});
+
+var player = document.getElementById('player');
+var frame = document.getElementById('frame');
+var playerTitle = document.getElementById('playerTitle');
+
+// 打开游戏：把游戏完整 HTML 放进 iframe，并显示全屏容器
+function openGame(i) {
+  var g = GAMES[i];
+  playerTitle.textContent = g.icon + ' ' + g.title;
+  frame.srcdoc = g.html;
+  player.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';  // 背景页面不滚动
+}
+
+// 返回列表：清空 iframe（停止游戏里的定时器），隐藏容器
+function closeGame() {
+  player.classList.add('hidden');
+  frame.srcdoc = '';
+  document.body.style.overflow = '';
+}
+
+document.getElementById('backBtn').addEventListener('click', closeGame);
+
+// ESC 键也可以返回列表
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape' && !player.classList.contains('hidden')) closeGame();
+});
+</script>
 </body>
 </html>
