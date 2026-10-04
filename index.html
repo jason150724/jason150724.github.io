@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🎮 游戏合集 - 9个小游戏点开即玩</title>
+<title>🎮 游戏合集 - 18个小游戏点开即玩</title>
 <style>
   /* ============ 页面整体样式 ============ */
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -142,13 +142,13 @@
 
   <header>
     <h1>🎮 游戏合集</h1>
-    <p>9 个小游戏，点开即玩 · 不用联网 · 纯静态单页面</p>
+    <p>18 个小游戏，点开即玩 · 不用联网 · 纯静态单页面</p>
   </header>
 
   <!-- 游戏卡片由下面的脚本自动生成 -->
   <main class="grid" id="grid"></main>
 
-  <footer>游戏合集 · 共 9 个游戏 · 点击卡片开始玩</footer>
+  <footer>游戏合集 · 共 18 个游戏 · 点击卡片开始玩</footer>
 
   <!-- 游戏运行容器：默认隐藏，点卡片后全屏显示 -->
   <div class="player hidden" id="player">
@@ -1968,6 +1968,1752 @@ var GAMES = [
 <\/script>
 </body>
 </html>`
+},
+
+/* ---------------- 游戏 10：飞扬小鸟 ---------------- */
+{
+  title: '飞扬小鸟',
+  icon: '🐤',
+  tag: '动作 · 点击/空格',
+  desc: '点击鼠标或按空格让小鸟拍翅膀，穿过管道间隙，撞到就失败！',
+  color: '#37b24d',
+  html: `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>飞扬小鸟</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: linear-gradient(180deg, #4fc3f7, #b3e5fc);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: "Microsoft YaHei", sans-serif;
+    user-select: none;
+  }
+  h1 { font-size: 28px; margin-bottom: 10px; color: #1b5e20; }
+  canvas {
+    border: 2px solid #2e7d32;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.25);
+    cursor: pointer;
+  }
+  .tip { margin-top: 12px; font-size: 14px; color: #1b5e20; }
+</style>
+</head>
+<body>
+  <h1>🐤 飞扬小鸟</h1>
+  <canvas id="game" width="360" height="520"></canvas>
+  <p class="tip">点击画面或按空格让小鸟往上飞，松开就会掉下来</p>
+
+<script>
+  var cv = document.getElementById('game');
+  var ctx = cv.getContext('2d');
+  var W = cv.width, H = cv.height;
+  var GROUND = 462;           // 地面高度
+
+  var bird, pipes, score, state, spawnAcc, lastTime, best = 0;
+  // state 有三种：ready（等待开始）/ play（进行中）/ over（结束）
+
+  function reset() {
+    bird = { x: 90, y: 240, vy: 0, r: 14 };
+    pipes = [];
+    score = 0;
+    spawnAcc = 0;
+    state = 'ready';
+  }
+
+  // 拍翅膀：往上冲一下
+  function flap() {
+    if (state === 'ready') { state = 'play'; lastTime = performance.now(); }
+    if (state === 'play') bird.vy = -6.6;
+    else if (state === 'over') reset();
+  }
+
+  // 生成一对上下水管，中间留 GAP 像素的缝
+  function spawnPipe() {
+    var gapY = 80 + Math.random() * (GROUND - 260);
+    pipes.push({ x: W, gapY: gapY, passed: false });
+  }
+
+  function update(dt) {
+    var f = dt / 16.7;   // 时间系数：以 60 帧为标准
+
+    // 小鸟始终受重力影响
+    bird.vy += 0.32 * f;
+    bird.y += bird.vy * f;
+
+    // 定时生成水管（约每 1.6 秒一对）
+    spawnAcc += dt;
+    if (spawnAcc > 1600) { spawnPipe(); spawnAcc = 0; }
+
+    for (var i = pipes.length - 1; i >= 0; i--) {
+      var p = pipes[i];
+      p.x -= 2.7 * f;
+      // 小鸟越过水管右边缘时得分
+      if (!p.passed && p.x + 62 < bird.x) { p.passed = true; score++; }
+      if (p.x < -70) pipes.splice(i, 1);
+    }
+
+    checkHit();
+  }
+
+  // 碰撞判定：地面、天花板、水管
+  function checkHit() {
+    if (bird.y + bird.r >= GROUND || bird.y - bird.r <= 0) return gameOver();
+    for (var i = 0; i < pipes.length; i++) {
+      var p = pipes[i];
+      if (bird.x + bird.r > p.x && bird.x - bird.r < p.x + 62) {
+        if (bird.y - bird.r < p.gapY || bird.y + bird.r > p.gapY + 152) return gameOver();
+      }
+    }
+  }
+
+  function gameOver() {
+    state = 'over';
+    if (score > best) best = score;
+  }
+
+  function draw() {
+    // 天空
+    ctx.fillStyle = '#7fc8f8';
+    ctx.fillRect(0, 0, W, H);
+
+    // 远景云
+    ctx.fillStyle = 'rgba(255,255,255,.7)';
+    ctx.beginPath(); ctx.arc(60, 90, 22, 0, 7); ctx.arc(86, 84, 28, 0, 7); ctx.arc(112, 94, 20, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(250, 150, 18, 0, 7); ctx.arc(272, 144, 24, 0, 7); ctx.arc(294, 152, 16, 0, 7); ctx.fill();
+
+    // 水管
+    ctx.fillStyle = '#43a047';
+    pipes.forEach(function (p) {
+      ctx.fillRect(p.x, 0, 62, p.gapY);                                 // 上管
+      ctx.fillRect(p.x - 3, p.gapY - 22, 68, 22);                       // 上管口
+      ctx.fillRect(p.x, p.gapY + 152, 62, GROUND - p.gapY - 152);       // 下管
+      ctx.fillRect(p.x - 3, p.gapY + 152, 68, 22);                      // 下管口
+    });
+
+    // 地面
+    ctx.fillStyle = '#8d6e63';
+    ctx.fillRect(0, GROUND, W, H - GROUND);
+    ctx.fillStyle = '#66bb6a';
+    ctx.fillRect(0, GROUND, W, 8);
+
+    // 小鸟（身体 + 眼睛 + 嘴巴）
+    ctx.save();
+    ctx.translate(bird.x, bird.y);
+    ctx.rotate(Math.max(-0.4, Math.min(0.9, bird.vy * 0.07)));  // 根据速度倾斜
+    ctx.fillStyle = '#ffd54f';
+    ctx.beginPath(); ctx.arc(0, 0, bird.r, 0, 7); ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(5, -5, 5, 0, 7); ctx.fill();
+    ctx.fillStyle = '#000';
+    ctx.beginPath(); ctx.arc(7, -5, 2.4, 0, 7); ctx.fill();
+    ctx.fillStyle = '#ff7043';
+    ctx.beginPath(); ctx.moveTo(12, 0); ctx.lineTo(22, 2); ctx.lineTo(12, 6); ctx.fill();
+    ctx.restore();
+
+    // 分数
+    ctx.fillStyle = '#fff';
+    ctx.strokeStyle = 'rgba(0,0,0,.4)';
+    ctx.lineWidth = 4;
+    ctx.font = 'bold 42px "Microsoft YaHei"';
+    ctx.textAlign = 'center';
+    if (state !== 'ready') {
+      ctx.strokeText(score, W/2, 70);
+      ctx.fillText(score, W/2, 70);
+    }
+
+    // 提示文字
+    ctx.font = 'bold 24px "Microsoft YaHei"';
+    if (state === 'ready') {
+      ctx.fillStyle = 'rgba(0,0,0,.55)';
+      ctx.fillText('点击开始', W/2, 200);
+      ctx.font = '16px "Microsoft YaHei"';
+      ctx.fillText('穿过水管得 1 分', W/2, 234);
+    }
+    if (state === 'over') {
+      ctx.fillStyle = 'rgba(0,0,0,.55)';
+      ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = '#ff5252';
+      ctx.font = 'bold 40px "Microsoft YaHei"';
+      ctx.fillText('游戏结束', W/2, 220);
+      ctx.fillStyle = '#fff';
+      ctx.font = '20px "Microsoft YaHei"';
+      ctx.fillText('得分：' + score + '　最高：' + best, W/2, 262);
+      ctx.font = '17px "Microsoft YaHei"';
+      ctx.fillText('点击画面重新开始', W/2, 306);
+    }
+  }
+
+  function loop(t) {
+    var dt = Math.min(40, t - lastTime);
+    lastTime = t;
+    if (state === 'play') update(dt);
+    else if (state === 'ready') { bird.y = 240 + Math.sin(t/300) * 8; }  // 待机时上下浮动
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  cv.addEventListener('mousedown', flap);
+  document.addEventListener('keydown', function (e) {
+    if (e.key === ' ') { e.preventDefault(); flap(); }
+  });
+
+  reset();
+  lastTime = performance.now();
+  requestAnimationFrame(loop);
+<\/script>
+</body>
+</html>`
+},
+
+/* ---------------- 游戏 11：猜数字 ---------------- */
+{
+  title: '猜数字',
+  icon: '🔮',
+  tag: '益智 · 推理',
+  desc: '电脑想了一个 1~100 的数，根据"大了/小了"的提示用最少次数猜中它！',
+  color: '#0ca678',
+  html: `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>猜数字</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: linear-gradient(135deg, #064e3b, #022c22);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: "Microsoft YaHei", sans-serif;
+    color: #d1fae5;
+    user-select: none;
+  }
+  .box {
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(52,211,153,.3);
+    border-radius: 20px;
+    padding: 36px 40px;
+    text-align: center;
+    width: 360px;
+  }
+  h1 { font-size: 30px; margin-bottom: 8px; }
+  .sub { font-size: 14px; color: #6ee7b7; margin-bottom: 22px; }
+  .hint {
+    font-size: 22px;
+    font-weight: bold;
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+  }
+  .hint.up { color: #fca5a5; }
+  .hint.down { color: #93c5fd; }
+  .hint.win { color: #6ee7b7; }
+  .row { display: flex; gap: 10px; }
+  input {
+    flex: 1;
+    padding: 12px;
+    font-size: 18px;
+    text-align: center;
+    border: none;
+    border-radius: 10px;
+    outline: none;
+  }
+  button {
+    padding: 12px 22px;
+    font-size: 16px;
+    border: none;
+    border-radius: 10px;
+    background: #10b981;
+    color: #022c22;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  button:hover { filter: brightness(1.1); }
+  .stats { margin-top: 18px; font-size: 14px; color: #a7f3d0; line-height: 1.9; }
+  .history { margin-top: 12px; font-size: 13px; color: #94a3b8; min-height: 20px; word-break: break-all; }
+  .again {
+    margin-top: 16px;
+    background: #34d399;
+    display: none;
+  }
+</style>
+</head>
+<body>
+  <div class="box">
+    <h1>🔮 猜数字</h1>
+    <div class="sub">我心里想了一个 1 ~ 100 之间的整数</div>
+    <div class="hint" id="hint">输入数字开始猜吧！</div>
+    <div class="row">
+      <input type="number" id="input" min="1" max="100" placeholder="1 - 100">
+      <button id="guessBtn">猜！</button>
+    </div>
+    <button class="again" id="againBtn">再玩一次</button>
+    <div class="stats">
+      已猜次数：<b id="tries">0</b> ｜ 最少记录：<b id="best">--</b>
+    </div>
+    <div class="history" id="history"></div>
+  </div>
+
+<script>
+  var answer, tries, over, best = null;
+  var hintEl = document.getElementById('hint');
+  var input = document.getElementById('input');
+  var triesEl = document.getElementById('tries');
+  var bestEl = document.getElementById('best');
+  var historyEl = document.getElementById('history');
+  var againBtn = document.getElementById('againBtn');
+
+  function newGame() {
+    answer = Math.floor(Math.random() * 100) + 1;  // 1~100 的随机整数
+    tries = 0;
+    over = false;
+    hintEl.textContent = '输入数字开始猜吧！';
+    hintEl.className = 'hint';
+    triesEl.textContent = 0;
+    historyEl.textContent = '';
+    againBtn.style.display = 'none';
+    input.disabled = false;
+    input.value = '';
+    input.focus();
+  }
+
+  function guess() {
+    if (over) return;
+    var v = parseInt(input.value, 10);
+    if (isNaN(v) || v < 1 || v > 100) {
+      hintEl.textContent = '请输入 1~100 的整数';
+      hintEl.className = 'hint';
+      return;
+    }
+    tries++;
+    triesEl.textContent = tries;
+
+    if (v === answer) {
+      over = true;
+      hintEl.textContent = '🎉 猜对了！就是 ' + answer;
+      hintEl.className = 'hint win';
+      input.disabled = true;
+      againBtn.style.display = 'inline-block';
+      if (best === null || tries < best) { best = tries; bestEl.textContent = best + ' 次'; }
+    } else if (v < answer) {
+      hintEl.textContent = v + ' 小了 ⬆️ 再大一点';
+      hintEl.className = 'hint up';
+    } else {
+      hintEl.textContent = v + ' 大了 ⬇️ 再小一点';
+      hintEl.className = 'hint down';
+    }
+    // 记录猜测历史
+    var mark = v === answer ? '🎯' : (v < answer ? '↑' : '↓');
+    historyEl.textContent += (historyEl.textContent ? '，' : '') + v + mark;
+    input.value = '';
+    input.focus();
+  }
+
+  document.getElementById('guessBtn').addEventListener('click', guess);
+  input.addEventListener('keydown', function (e) { if (e.key === 'Enter') guess(); });
+  againBtn.addEventListener('click', newGame);
+
+  newGame();
+<\/script>
+</body>
+</html>`
+},
+
+/* ---------------- 游戏 12：飞机大战 ---------------- */
+{
+  title: '飞机大战',
+  icon: '✈️',
+  tag: '射击 · 鼠标',
+  desc: '移动鼠标驾驶战机，自动发射子弹击落敌机，被撞到会扣命！',
+  color: '#e8590c',
+  html: `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>飞机大战</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0b1020;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: "Microsoft YaHei", sans-serif;
+    color: #e2e8f0;
+    user-select: none;
+  }
+  h1 { font-size: 28px; margin-bottom: 10px; color: #60a5fa; }
+  .info { display: flex; gap: 30px; font-size: 17px; margin-bottom: 12px; }
+  .info b { color: #fbbf24; }
+  canvas {
+    background: #0d1426;
+    border: 2px solid #3b82f6;
+    border-radius: 10px;
+    box-shadow: 0 0 22px rgba(59,130,246,.3);
+    cursor: none;
+  }
+  .tip { margin-top: 12px; font-size: 14px; color: #94a3b8; }
+</style>
+</head>
+<body>
+  <h1>✈️ 飞机大战</h1>
+  <div class="info">
+    <div>得分：<b id="score">0</b></div>
+    <div>生命：<b id="lives">❤️❤️❤️</b></div>
+  </div>
+  <canvas id="game" width="420" height="600"></canvas>
+  <p class="tip">移动鼠标控制飞机（也可用 ← → 键），子弹自动发射</p>
+
+<script>
+  var cv = document.getElementById('game');
+  var ctx = cv.getContext('2d');
+  var W = cv.width, H = cv.height;
+
+  var player, bullets, enemies, particles, score, lives, over;
+  var fireAcc, enemyAcc, lastTime, rafId;
+  var keys = { left: false, right: false };
+  var stars = [];   // 背景星星
+
+  // 初始化星空
+  for (var s = 0; s < 60; s++) {
+    stars.push({ x: Math.random()*W, y: Math.random()*H, v: 0.5 + Math.random()*2, r: Math.random()*1.6 });
+  }
+
+  function init() {
+    player = { x: W/2, y: H - 70, w: 38, h: 42, speed: 7 };
+    bullets = [];
+    enemies = [];
+    particles = [];
+    score = 0;
+    lives = 3;
+    over = false;
+    fireAcc = 0;
+    enemyAcc = 0;
+    updateUI();
+  }
+
+  function updateUI() {
+    document.getElementById('score').textContent = score;
+    document.getElementById('lives').textContent = lives > 0 ? '❤️'.repeat(lives) : '💔';
+  }
+
+  // 爆炸粒子
+  function boom(x, y, color) {
+    for (var i = 0; i < 12; i++) {
+      var a = Math.random() * Math.PI * 2;
+      particles.push({ x: x, y: y, vx: Math.cos(a)*(1+Math.random()*3), vy: Math.sin(a)*(1+Math.random()*3), life: 26, color: color });
+    }
+  }
+
+  function update(dt) {
+    var f = dt / 16.7;
+
+    // 玩家移动（键盘）
+    if (keys.left) player.x -= player.speed * f;
+    if (keys.right) player.x += player.speed * f;
+    player.x = Math.max(player.w/2, Math.min(W - player.w/2, player.x));
+
+    // 自动开火（约每 180ms 一发）
+    fireAcc += dt;
+    if (fireAcc > 180) {
+      fireAcc = 0;
+      bullets.push({ x: player.x, y: player.y - 22 });
+    }
+
+    // 生成敌机（分数越高出现越快）
+    enemyAcc += dt;
+    if (enemyAcc > Math.max(320, 800 - score * 4)) {
+      enemyAcc = 0;
+      enemies.push({ x: 24 + Math.random()*(W-48), y: -30, w: 36, h: 30, vy: 2 + Math.random()*1.8 + score/300 });
+    }
+
+    // 子弹上飞
+    for (var i = bullets.length - 1; i >= 0; i--) {
+      bullets[i].y -= 10 * f;
+      if (bullets[i].y < -10) bullets.splice(i, 1);
+    }
+
+    // 敌机下落 + 碰撞
+    for (var j = enemies.length - 1; j >= 0; j--) {
+      var e = enemies[j];
+      e.y += e.vy * f;
+
+      // 子弹击中敌机
+      var killed = false;
+      for (var k = bullets.length - 1; k >= 0; k--) {
+        var b = bullets[k];
+        if (Math.abs(b.x - e.x) < e.w/2 && Math.abs(b.y - e.y) < e.h/2) {
+          bullets.splice(k, 1);
+          enemies.splice(j, 1);
+          boom(e.x, e.y, '#f87171');
+          score += 10;
+          updateUI();
+          killed = true;
+          break;
+        }
+      }
+      if (killed) continue;
+
+      // 敌机撞到玩家
+      if (Math.abs(e.x - player.x) < (e.w + player.w)/2 - 8 &&
+          Math.abs(e.y - player.y) < (e.h + player.h)/2 - 8) {
+        enemies.splice(j, 1);
+        boom(player.x, player.y, '#fbbf24');
+        lives--;
+        updateUI();
+        if (lives <= 0) gameOver();
+        continue;
+      }
+
+      // 飞出屏幕
+      if (e.y > H + 30) enemies.splice(j, 1);
+    }
+
+    // 粒子动画
+    for (var p = particles.length - 1; p >= 0; p--) {
+      var pt = particles[p];
+      pt.x += pt.vx * f;
+      pt.y += pt.vy * f;
+      pt.life--;
+      if (pt.life <= 0) particles.splice(p, 1);
+    }
+
+    // 星空滚动
+    stars.forEach(function (st) {
+      st.y += st.v * f;
+      if (st.y > H) { st.y = 0; st.x = Math.random() * W; }
+    });
+  }
+
+  function draw() {
+    ctx.fillStyle = '#0d1426';
+    ctx.fillRect(0, 0, W, H);
+
+    // 星星
+    ctx.fillStyle = '#cbd5e1';
+    stars.forEach(function (st) {
+      ctx.globalAlpha = .4 + st.r/3;
+      ctx.fillRect(st.x, st.y, st.r, st.r);
+    });
+    ctx.globalAlpha = 1;
+
+    // 子弹
+    ctx.fillStyle = '#fde047';
+    bullets.forEach(function (b) { ctx.fillRect(b.x - 2, b.y - 8, 4, 14); });
+
+    // 敌机（倒三角）
+    enemies.forEach(function (e) {
+      ctx.fillStyle = '#ef4444';
+      ctx.beginPath();
+      ctx.moveTo(e.x, e.y + e.h/2);
+      ctx.lineTo(e.x - e.w/2, e.y - e.h/2);
+      ctx.lineTo(e.x + e.w/2, e.y - e.h/2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#7f1d1d';
+      ctx.fillRect(e.x - 6, e.y - 12, 12, 6);
+    });
+
+    // 玩家飞机（正三角 + 机翼）
+    ctx.fillStyle = '#60a5fa';
+    ctx.beginPath();
+    ctx.moveTo(player.x, player.y - player.h/2);
+    ctx.lineTo(player.x - player.w/2, player.y + player.h/2);
+    ctx.lineTo(player.x + player.w/2, player.y + player.h/2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#1d4ed8';
+    ctx.fillRect(player.x - 5, player.y + player.h/2 - 4, 10, 10);
+
+    // 爆炸粒子
+    particles.forEach(function (pt) {
+      ctx.globalAlpha = pt.life / 26;
+      ctx.fillStyle = pt.color;
+      ctx.fillRect(pt.x - 2, pt.y - 2, 4, 4);
+    });
+    ctx.globalAlpha = 1;
+
+    if (over) {
+      ctx.fillStyle = 'rgba(0,0,0,.7)';
+      ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = '#f87171';
+      ctx.font = 'bold 38px "Microsoft YaHei"';
+      ctx.textAlign = 'center';
+      ctx.fillText('飞机被击落！', W/2, H/2 - 20);
+      ctx.fillStyle = '#fff';
+      ctx.font = '20px "Microsoft YaHei"';
+      ctx.fillText('最终得分：' + score, W/2, H/2 + 20);
+      ctx.font = '16px "Microsoft YaHei"';
+      ctx.fillText('点击画面重新开始', W/2, H/2 + 58);
+    }
+  }
+
+  function loop(t) {
+    var dt = Math.min(40, t - lastTime);
+    lastTime = t;
+    if (!over) update(dt);
+    draw();
+    rafId = requestAnimationFrame(loop);
+  }
+
+  function gameOver() { over = true; }
+
+  cv.addEventListener('mousemove', function (e) {
+    var rect = cv.getBoundingClientRect();
+    player.x = (e.clientX - rect.left) * (W / rect.width);
+    player.y = (e.clientY - rect.top) * (H / rect.height);
+    player.y = Math.max(H/2, Math.min(H - 40, player.y));
+  });
+  cv.addEventListener('mousedown', function () { if (over) start(); });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowLeft') keys.left = true;
+    if (e.key === 'ArrowRight') keys.right = true;
+  });
+  document.addEventListener('keyup', function (e) {
+    if (e.key === 'ArrowLeft') keys.left = false;
+    if (e.key === 'ArrowRight') keys.right = false;
+  });
+
+  function start() {
+    init();
+    lastTime = performance.now();
+    cancelAnimationFrame(rafId);
+    rafId = requestAnimationFrame(loop);
+  }
+  start();
+<\/script>
+</body>
+</html>`
+},
+
+/* ---------------- 游戏 13：五子棋 ---------------- */
+{
+  title: '五子棋',
+  icon: '⚫',
+  tag: '棋类 · 双人',
+  desc: '黑白轮流落子，横、竖或斜向先连成五子的一方获胜，叫上朋友对战！',
+  color: '#5c3a21',
+  html: `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>五子棋</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: linear-gradient(135deg, #3e2723, #1b0f0a);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: "Microsoft YaHei", sans-serif;
+    color: #efebe9;
+    user-select: none;
+  }
+  h1 { font-size: 28px; margin-bottom: 10px; }
+  .status { font-size: 19px; margin-bottom: 12px; height: 28px; }
+  .status b.black { color: #111; background: #eee; border-radius: 50%; padding: 2px 9px; }
+  .status b.white { color: #fff; background: #555; border-radius: 50%; padding: 2px 9px; }
+  canvas {
+    background: #d7a86e;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.45);
+    cursor: pointer;
+  }
+  button {
+    margin-top: 14px;
+    padding: 10px 28px;
+    font-size: 16px;
+    border: none;
+    border-radius: 8px;
+    background: #a1887f;
+    color: #fff;
+    cursor: pointer;
+  }
+  button:hover { filter: brightness(1.1); }
+</style>
+</head>
+<body>
+  <h1>⚫ 五子棋 ⚪</h1>
+  <div class="status" id="status"></div>
+  <canvas id="board" width="450" height="450"></canvas>
+  <button onclick="init()">重新开始</button>
+
+<script>
+  var cv = document.getElementById('board');
+  var ctx = cv.getContext('2d');
+  var N = 15;          // 15 路棋盘
+  var CELL = 30;       // 每格 30 像素
+  var OFFSET = 15;     // 第一条线距边缘的距离
+
+  var board, current, over, winLine = null;
+
+  function init() {
+    // 棋盘数据：0 空，1 黑，2 白
+    board = [];
+    for (var r = 0; r < N; r++) board.push(new Array(N).fill(0));
+    current = 1;   // 黑棋先行
+    over = false;
+    winLine = null;
+    updateStatus();
+    draw();
+  }
+
+  function updateStatus() {
+    var st = document.getElementById('status');
+    if (over) return;
+    if (current === 1) st.innerHTML = '轮到 <b class="black">●</b> 黑棋';
+    else st.innerHTML = '轮到 <b class="white">●</b> 白棋';
+  }
+
+  function draw() {
+    // 木纹底色
+    ctx.fillStyle = '#d7a86e';
+    ctx.fillRect(0, 0, cv.width, cv.height);
+
+    // 网格线
+    ctx.strokeStyle = '#5d4037';
+    ctx.lineWidth = 1;
+    for (var i = 0; i < N; i++) {
+      ctx.beginPath();
+      ctx.moveTo(OFFSET, OFFSET + i*CELL);
+      ctx.lineTo(OFFSET + (N-1)*CELL, OFFSET + i*CELL);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(OFFSET + i*CELL, OFFSET);
+      ctx.lineTo(OFFSET + i*CELL, OFFSET + (N-1)*CELL);
+      ctx.stroke();
+    }
+
+    // 五个星位
+    [[3,3],[11,3],[3,11],[11,11],[7,7]].forEach(function (p) {
+      ctx.fillStyle = '#5d4037';
+      ctx.beginPath();
+      ctx.arc(OFFSET + p[0]*CELL, OFFSET + p[1]*CELL, 4, 0, 7);
+      ctx.fill();
+    });
+
+    // 棋子
+    for (var r = 0; r < N; r++) {
+      for (var c = 0; c < N; c++) {
+        if (board[r][c]) drawStone(c, r, board[r][c]);
+      }
+    }
+
+    // 获胜的五连子高亮
+    if (winLine) {
+      ctx.strokeStyle = '#e53935';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(OFFSET + winLine[0].c*CELL, OFFSET + winLine[0].r*CELL);
+      ctx.lineTo(OFFSET + winLine[1].c*CELL, OFFSET + winLine[1].r*CELL);
+      ctx.stroke();
+    }
+  }
+
+  function drawStone(c, r, color) {
+    var x = OFFSET + c*CELL, y = OFFSET + r*CELL;
+    var g = ctx.createRadialGradient(x-4, y-4, 2, x, y, 13);
+    if (color === 1) { g.addColorStop(0, '#666'); g.addColorStop(1, '#000'); }
+    else { g.addColorStop(0, '#fff'); g.addColorStop(1, '#bbb'); }
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(x, y, 12.5, 0, 7);
+    ctx.fill();
+  }
+
+  cv.addEventListener('click', function (e) {
+    if (over) return;
+    var rect = cv.getBoundingClientRect();
+    var x = (e.clientX - rect.left) * (cv.width / rect.width);
+    var y = (e.clientY - rect.top) * (cv.height / rect.height);
+    // 找到最近的交叉点
+    var c = Math.round((x - OFFSET) / CELL);
+    var r = Math.round((y - OFFSET) / CELL);
+    if (c < 0 || c >= N || r < 0 || r >= N || board[r][c] !== 0) return;
+
+    board[r][c] = current;
+    var line = checkWin(r, c, current);
+    draw();
+
+    if (line) {
+      over = true;
+      winLine = line;
+      draw();
+      document.getElementById('status').innerHTML =
+        (current === 1 ? '⚫ 黑棋' : '⚪ 白棋') + ' 五子连珠，获胜！🎉';
+      return;
+    }
+    current = current === 1 ? 2 : 1;
+    updateStatus();
+  });
+
+  // 检查刚落下的子是否形成五连：四个方向分别往两边数
+  function checkWin(r, c, color) {
+    var dirs = [[0,1],[1,0],[1,1],[1,-1]];
+    for (var d = 0; d < dirs.length; d++) {
+      var dr = dirs[d][0], dc = dirs[d][1];
+      var count = 1;
+      var a = { r: r, c: c }, b = { r: r, c: c };
+      // 正向延伸
+      var nr = r + dr, nc = c + dc;
+      while (nr>=0 && nr<N && nc>=0 && nc<N && board[nr][nc] === color) {
+        count++; b = { r: nr, c: nc }; nr += dr; nc += dc;
+      }
+      // 反向延伸
+      nr = r - dr; nc = c - dc;
+      while (nr>=0 && nr<N && nc>=0 && nc<N && board[nr][nc] === color) {
+        count++; a = { r: nr, c: nc }; nr -= dr; nc -= dc;
+      }
+      if (count >= 5) return [a, b];
+    }
+    return null;
+  }
+
+  init();
+<\/script>
+</body>
+</html>`
+},
+
+/* ---------------- 游戏 14：推箱子 ---------------- */
+{
+  title: '推箱子',
+  icon: '📦',
+  tag: '益智 · 方向键',
+  desc: '用方向键推动箱子，把所有箱子都推到圆形目标点上即可过关，共 3 关！',
+  color: '#8d6e63',
+  html: `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>推箱子</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: linear-gradient(135deg, #1c1917, #0c0a09);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: "Microsoft YaHei", sans-serif;
+    color: #f5f5f4;
+    user-select: none;
+  }
+  h1 { font-size: 28px; margin-bottom: 6px; }
+  .info { font-size: 16px; margin-bottom: 14px; color: #d6d3d1; }
+  .info b { color: #fbbf24; }
+  .board {
+    display: grid;
+    gap: 2px;
+    background: #44403c;
+    padding: 8px;
+    border-radius: 10px;
+  }
+  .cell {
+    width: 46px; height: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    border-radius: 5px;
+    background: #292524;
+  }
+  .cell.wall { background: #78716c; }
+  .cell.target { background: #14532d; }
+  .cell.target::after { content: '⭕'; position: absolute; opacity: .5; font-size: 20px; }
+  .cell { position: relative; }
+  .cell span { position: relative; z-index: 1; }
+  .tip { margin-top: 14px; font-size: 14px; color: #a8a29e; }
+  button {
+    margin-top: 12px;
+    padding: 9px 24px;
+    font-size: 15px;
+    border: none;
+    border-radius: 8px;
+    background: #a16207;
+    color: #fff;
+    cursor: pointer;
+  }
+  button:hover { filter: brightness(1.15); }
+  .win-msg { margin-top: 12px; font-size: 20px; color: #4ade80; font-weight: bold; min-height: 28px; }
+</style>
+</head>
+<body>
+  <h1>📦 推箱子</h1>
+  <div class="info">第 <b id="level">1</b> 关 ｜ 步数：<b id="steps">0</b></div>
+  <div class="board" id="board"></div>
+  <div class="win-msg" id="winMsg"></div>
+  <button onclick="restartLevel()">重玩本关</button>
+  <p class="tip">↑ ↓ ← → 移动，只能推箱子不能拉，箱子推到墙角就只能重开啦</p>
+
+<script>
+  /* 关卡字符含义：
+     # 墙   空格 地板   @ 玩家   $ 箱子   . 目标点   * 箱子在目标上   + 玩家在目标上 */
+  var LEVELS = [
+    [
+      '########',
+      '#      #',
+      '# .$@  #',
+      '#  $ . #',
+      '#      #',
+      '########'
+    ],
+    [
+      '##########',
+      '#        #',
+      '#  ....  #',
+      '#  $$$$  #',
+      '#   @    #',
+      '#        #',
+      '##########'
+    ],
+    [
+      '#########',
+      '#       #',
+      '# .   . #',
+      '# $   $ #',
+      '#       #',
+      '# $   $ #',
+      '# .   . #',
+      '#   @   #',
+      '#########'
+    ]
+  ];
+  // 第 3 关：四角各一个目标点和箱子，利用中间空旷的通道绕到箱子下方/上方推动即可
+
+  var levelIdx = 0;
+  var map;       // 当前地图的二维字符数组
+  var steps;
+  var boardEl = document.getElementById('board');
+
+  function loadLevel(idx) {
+    map = LEVELS[idx].map(function (row) { return row.split(''); });
+    steps = 0;
+    document.getElementById('level').textContent = idx + 1;
+    document.getElementById('steps').textContent = 0;
+    document.getElementById('winMsg').textContent = '';
+    render();
+  }
+
+  function restartLevel() { loadLevel(levelIdx); }
+
+  // 找到玩家位置
+  function findPlayer() {
+    for (var r = 0; r < map.length; r++)
+      for (var c = 0; c < map[r].length; c++)
+        if (map[r][c] === '@' || map[r][c] === '+') return { r: r, c: c };
+    return null;
+  }
+
+  function render() {
+    boardEl.innerHTML = '';
+    var cols = map[0].length;
+    boardEl.style.gridTemplateColumns = 'repeat(' + cols + ', 46px)';
+
+    for (var r = 0; r < map.length; r++) {
+      for (var c = 0; c < map[r].length; c++) {
+        var ch = map[r][c];
+        var div = document.createElement('div');
+        div.className = 'cell';
+        var icon = '';
+
+        if (ch === '#') { div.classList.add('wall'); }
+        if (ch === '.' || ch === '*' || ch === '+') div.classList.add('target');
+        if (ch === '@' || ch === '+') icon = '😀';
+        if (ch === '$') icon = '📦';
+        if (ch === '*') icon = '🎁';   // 箱子正好在目标点上
+
+        if (icon) { var sp = document.createElement('span'); sp.textContent = icon; div.appendChild(sp); }
+        boardEl.appendChild(div);
+      }
+    }
+  }
+
+  // 尝试往 (dr,dc) 方向移动
+  function move(dr, dc) {
+    var p = findPlayer();
+    if (!p) return;
+    var nr = p.r + dr, nc = p.c + dc;
+    var target = map[nr][nc];
+    if (target === '#') return;  // 撞墙
+
+    // 前面是箱子：尝试再往前推一格
+    if (target === '$' || target === '*') {
+      var br = nr + dr, bc = nc + dc;
+      var beyond = map[br][bc];
+      if (beyond === '#' || beyond === '$' || beyond === '*') return;  // 推不动
+      // 箱子前移
+      map[br][bc] = (beyond === '.') ? '*' : '$';
+      map[nr][nc] = (target === '*') ? '.' : ' ';
+    }
+
+    // 玩家前移
+    map[p.r][p.c] = (map[p.r][p.c] === '+') ? '.' : ' ';
+    map[nr][nc] = (map[nr][nc] === '.') ? '+' : '@';
+
+    steps++;
+    document.getElementById('steps').textContent = steps;
+    render();
+    checkWin();
+  }
+
+  function checkWin() {
+    // 地图上不再有"没在目标上的箱子"（$），即全部就位
+    for (var r = 0; r < map.length; r++)
+      if (map[r].indexOf('$') !== -1) return;
+
+    if (levelIdx < LEVELS.length - 1) {
+      document.getElementById('winMsg').textContent = '🎉 过关！自动进入下一关…';
+      var next = levelIdx + 1;
+      setTimeout(function () { levelIdx = next; loadLevel(levelIdx); }, 1100);
+    } else {
+      document.getElementById('winMsg').textContent = '🏆 恭喜！全部 3 关通关！';
+    }
+  }
+
+  document.addEventListener('keydown', function (e) {
+    var map2 = { ArrowUp:[-1,0], ArrowDown:[1,0], ArrowLeft:[0,-1], ArrowRight:[0,1] };
+    if (map2[e.key]) { e.preventDefault(); move(map2[e.key][0], map2[e.key][1]); }
+  });
+
+  loadLevel(0);
+<\/script>
+</body>
+</html>`
+},
+
+/* ---------------- 游戏 15：数字华容道 ---------------- */
+{
+  title: '数字华容道',
+  icon: '🧩',
+  tag: '益智 · 滑块',
+  desc: '点击与空格相邻的数字块，把 1~8 按顺序排好，步数越少越厉害！',
+  color: '#6741d9',
+  html: `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>数字华容道</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: linear-gradient(135deg, #312e81, #1e1b4b);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: "Microsoft YaHei", sans-serif;
+    color: #e0e7ff;
+    user-select: none;
+  }
+  h1 { font-size: 30px; margin-bottom: 12px; }
+  .info { display: flex; gap: 26px; font-size: 17px; margin-bottom: 16px; }
+  .info b { color: #a5b4fc; }
+  .board {
+    display: grid;
+    grid-template-columns: repeat(3, 92px);
+    grid-template-rows: repeat(3, 92px);
+    gap: 8px;
+    background: #1e1b4b;
+    padding: 10px;
+    border-radius: 14px;
+  }
+  .tile {
+    background: linear-gradient(135deg, #6366f1, #4338ca);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    font-weight: bold;
+    color: #fff;
+    cursor: pointer;
+    transition: transform .12s, filter .12s;
+  }
+  .tile:hover:not(.empty) { transform: scale(1.04); filter: brightness(1.15); }
+  .tile.empty { background: transparent; cursor: default; }
+  .tile.correct { box-shadow: inset 0 0 0 3px #34d399; }
+  .tip { margin-top: 16px; font-size: 14px; color: #a5b4fc; }
+  button {
+    margin-top: 12px;
+    padding: 10px 28px;
+    font-size: 16px;
+    border: none;
+    border-radius: 8px;
+    background: #818cf8;
+    color: #1e1b4b;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  button:hover { filter: brightness(1.1); }
+  .win { margin-top: 12px; font-size: 22px; color: #4ade80; font-weight: bold; min-height: 30px; }
+</style>
+</head>
+<body>
+  <h1>🧩 数字华容道</h1>
+  <div class="info">
+    <div>步数：<b id="steps">0</b></div>
+    <div>用时：<b id="time">0</b>s</div>
+  </div>
+  <div class="board" id="board"></div>
+  <div class="win" id="win"></div>
+  <button onclick="newGame()">打乱重来</button>
+  <p class="tip">把数字按 1 2 3 / 4 5 6 / 7 8 的顺序排好，最后一格留空</p>
+
+<script>
+  var boardEl = document.getElementById('board');
+  var tiles;        // 长度 9 的数组，数字 1~8，0 表示空格
+  var steps, seconds, timer, started, over;
+
+  function newGame() {
+    // 从"已完成"状态出发，随机执行 300 次合法滑动，保证局面一定有解
+    tiles = [1,2,3,4,5,6,7,8,0];
+    for (var i = 0; i < 300; i++) {
+      var neighbors = movableTiles();
+      var pick = neighbors[Math.floor(Math.random() * neighbors.length)];
+      swapWithEmpty(pick);
+    }
+    steps = 0;
+    seconds = 0;
+    over = false;
+    started = false;
+    clearInterval(timer);
+    document.getElementById('steps').textContent = 0;
+    document.getElementById('time').textContent = 0;
+    document.getElementById('win').textContent = '';
+    render();
+  }
+
+  // 空格的位置
+  function emptyIndex() { return tiles.indexOf(0); }
+
+  // 找出所有和空格相邻（上下左右）的数字块位置
+  function movableTiles() {
+    var e = emptyIndex();
+    var er = Math.floor(e / 3), ec = e % 3;
+    var result = [];
+    [[-1,0],[1,0],[0,-1],[0,1]].forEach(function (d) {
+      var r = er + d[0], c = ec + d[1];
+      if (r >= 0 && r < 3 && c >= 0 && c < 3) result.push(r * 3 + c);
+    });
+    return result;
+  }
+
+  function swapWithEmpty(i) {
+    var e = emptyIndex();
+    var tmp = tiles[i];
+    tiles[i] = tiles[e];
+    tiles[e] = tmp;
+  }
+
+  function render() {
+    boardEl.innerHTML = '';
+    tiles.forEach(function (v, i) {
+      var div = document.createElement('div');
+      div.className = 'tile' + (v === 0 ? ' empty' : '');
+      // 数字正好在自己该在的位置时加绿框提示
+      if (v !== 0 && v === i + 1) div.classList.add('correct');
+      div.textContent = v === 0 ? '' : v;
+      div.addEventListener('click', function () { tryMove(i); });
+      boardEl.appendChild(div);
+    });
+  }
+
+  function tryMove(i) {
+    if (over) return;
+    if (movableTiles().indexOf(i) === -1) return;  // 不挨着空格，不能动
+
+    if (!started) {
+      started = true;
+      timer = setInterval(function () {
+        seconds++;
+        document.getElementById('time').textContent = seconds;
+      }, 1000);
+    }
+
+    swapWithEmpty(i);
+    steps++;
+    document.getElementById('steps').textContent = steps;
+    render();
+    checkWin();
+  }
+
+  function checkWin() {
+    for (var i = 0; i < 8; i++) {
+      if (tiles[i] !== i + 1) return;
+    }
+    over = true;
+    clearInterval(timer);
+    document.getElementById('win').textContent =
+      '🎉 完成！用了 ' + steps + ' 步、' + seconds + ' 秒';
+  }
+
+  newGame();
+<\/script>
+</body>
+</html>`
+},
+
+/* ---------------- 游戏 16：反应力测试 ---------------- */
+{
+  title: '反应力测试',
+  icon: '⚡',
+  tag: '休闲 · 反应',
+  desc: '等待屏幕变绿的一瞬间点击，测测你的反应速度有多少毫秒！',
+  color: '#f59f00',
+  html: `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>反应力测试</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Microsoft YaHei", sans-serif;
+    color: #fff;
+    user-select: none;
+  }
+  /* 整个屏幕就是按钮，颜色随状态变化 */
+  #panel {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    text-align: center;
+    padding: 20px;
+    transition: background .05s;
+  }
+  #panel.idle    { background: #1971c2; }
+  #panel.waiting { background: #e03131; }
+  #panel.go      { background: #2f9e44; }
+  #panel.result  { background: #1c7ed6; }
+  #panel.foul    { background: #e8590c; }
+  .big { font-size: 52px; font-weight: bold; margin-bottom: 14px; }
+  .small { font-size: 20px; opacity: .9; }
+  .ms { font-size: 64px; font-weight: bold; margin: 10px 0; }
+</style>
+</head>
+<body>
+  <div id="panel" class="idle">
+    <div class="big" id="big">⚡ 反应力测试</div>
+    <div class="small" id="small">点击任意位置开始</div>
+  </div>
+
+<script>
+  var panel = document.getElementById('panel');
+  var bigEl = document.getElementById('big');
+  var smallEl = document.getElementById('small');
+
+  var state = 'idle';   // idle / waiting / go / result / foul
+  var goTime = 0;       // 屏幕变绿的时间戳
+  var waitTimer = null;
+  var best = null;      // 最佳成绩
+
+  function setUI(stateName, big, small) {
+    state = stateName;
+    panel.className = stateName;
+    bigEl.innerHTML = big;
+    smallEl.innerHTML = small;
+  }
+
+  panel.addEventListener('click', function () {
+    if (state === 'idle' || state === 'result' || state === 'foul') {
+      // 进入"等待变绿"阶段，1.2~4 秒后随机变绿
+      setUI('waiting', '等待绿色…', '看到绿色立刻点击！提前点算犯规');
+      var delay = 1200 + Math.random() * 2800;
+      waitTimer = setTimeout(function () {
+        setUI('go', '点击！', '就是现在！');
+        goTime = performance.now();
+      }, delay);
+    } else if (state === 'waiting') {
+      // 犯规：绿色还没出现就点了
+      clearTimeout(waitTimer);
+      setUI('foul', '太早了！😅', '点击重新开始');
+    } else if (state === 'go') {
+      // 正常反应：计算用时
+      var ms = Math.round(performance.now() - goTime);
+      if (best === null || ms < best) best = ms;
+      var comment = ms < 200 ? '超人级反应！🦸' :
+                    ms < 280 ? '很快！👍' :
+                    ms < 400 ? '还不错 🙂' : '有点慢，多练练～';
+      setUI('result',
+        '你的反应：<span class="ms">' + ms + ' ms</span>',
+        comment + '<br>最佳成绩：' + best + ' ms<br><br>点击再来一次');
+    }
+  });
+<\/script>
+</body>
+</html>`
+},
+
+/* ---------------- 游戏 17：石头剪刀布 ---------------- */
+{
+  title: '石头剪刀布',
+  icon: '✊',
+  tag: '休闲 · 对战',
+  desc: '和电脑玩石头剪刀布，连赢 5 局算你厉害，看看谁的套路更深！',
+  color: '#d6336c',
+  html: `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>石头剪刀布</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: linear-gradient(135deg, #9d174d, #4a044e);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: "Microsoft YaHei", sans-serif;
+    color: #fdf2f8;
+    user-select: none;
+  }
+  h1 { font-size: 30px; margin-bottom: 18px; }
+  .score {
+    display: flex;
+    gap: 36px;
+    font-size: 18px;
+    margin-bottom: 26px;
+  }
+  .score b { font-size: 26px; }
+  .score .you b { color: #6ee7b7; }
+  .score .pc b { color: #fda4af; }
+  .arena {
+    display: flex;
+    gap: 60px;
+    align-items: center;
+    margin-bottom: 26px;
+  }
+  .hand {
+    width: 150px; height: 150px;
+    background: rgba(255,255,255,.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 76px;
+  }
+  .hand.pc { transform: scaleX(-1); }   // 电脑的手镜像朝左
+  .vs { font-size: 30px; font-weight: bold; color: #fbcfe8; }
+  .result {
+    font-size: 26px;
+    font-weight: bold;
+    min-height: 40px;
+    margin-bottom: 22px;
+  }
+  .choices { display: flex; gap: 18px; }
+  .choices button {
+    width: 96px; height: 96px;
+    font-size: 46px;
+    border: 3px solid rgba(255,255,255,.25);
+    border-radius: 18px;
+    background: rgba(255,255,255,.08);
+    cursor: pointer;
+    transition: transform .12s, background .12s;
+  }
+  .choices button:hover:not(:disabled) { transform: translateY(-6px); background: rgba(255,255,255,.2); }
+  .choices button:disabled { opacity: .5; cursor: default; }
+  .streak { margin-top: 20px; font-size: 15px; color: #fbcfe8; min-height: 22px; }
+  .label { font-size: 14px; color: #f9a8d4; margin-top: 8px; text-align: center; }
+  .hand-wrap { text-align: center; }
+</style>
+</head>
+<body>
+  <h1>✊ 石头剪刀布 ✌️</h1>
+  <div class="score">
+    <div class="you">你胜：<b id="you">0</b></div>
+    <div>平局：<b id="draw">0</b></div>
+    <div class="pc">电脑胜：<b id="pc">0</b></div>
+  </div>
+
+  <div class="arena">
+    <div class="hand-wrap">
+      <div class="hand" id="youHand">✊</div>
+      <div class="label">你</div>
+    </div>
+    <div class="vs">VS</div>
+    <div class="hand-wrap">
+      <div class="hand pc" id="pcHand">✊</div>
+      <div class="label">电脑</div>
+    </div>
+  </div>
+
+  <div class="result" id="result">出招吧！</div>
+  <div class="choices">
+    <button data-c="rock">✊</button>
+    <button data-c="scissors">✌️</button>
+    <button data-c="paper">✋</button>
+  </div>
+  <div class="streak" id="streak"></div>
+
+<script>
+  var EMOJI = { rock: '✊', scissors: '✌️', paper: '✋' };
+  var NAME = { rock: '石头', scissors: '剪刀', paper: '布' };
+  var CHOICES = ['rock', 'scissors', 'paper'];
+
+  var score = { you: 0, pc: 0, draw: 0 };
+  var streak = 0, maxStreak = 0;
+  var busy = false;
+
+  var youHand = document.getElementById('youHand');
+  var pcHand = document.getElementById('pcHand');
+  var resultEl = document.getElementById('result');
+  var streakEl = document.getElementById('streak');
+  var buttons = document.querySelectorAll('.choices button');
+
+  function play(you) {
+    if (busy) return;
+    busy = true;
+    buttons.forEach(function (b) { b.disabled = true; });
+    resultEl.textContent = '出招中…';
+    resultEl.style.color = '#fbcfe8';
+
+    // 双手先一起摇（用 ✊ 模拟"石头剪刀布"的晃动）
+    youHand.textContent = '✊';
+    pcHand.textContent = '✊';
+    var shakes = 0;
+    var shakeTimer = setInterval(function () {
+      shakes++;
+      var up = shakes % 2 === 0;
+      youHand.style.marginTop = up ? '0' : '-18px';
+      pcHand.style.marginTop = up ? '0' : '-18px';
+      if (shakes >= 6) {
+        clearInterval(shakeTimer);
+        finish(you);
+      }
+    }, 130);
+  }
+
+  function finish(you) {
+    var pc = CHOICES[Math.floor(Math.random() * 3)];
+    youHand.textContent = EMOJI[you];
+    pcHand.textContent = EMOJI[pc];
+    youHand.style.marginTop = '0';
+    pcHand.style.marginTop = '0';
+
+    var text;
+    if (you === pc) {
+      score.draw++;
+      streak = 0;
+      text = '平局！都出了' + NAME[you];
+      resultEl.style.color = '#fde68a';
+    } else if (
+      (you === 'rock' && pc === 'scissors') ||
+      (you === 'scissors' && pc === 'paper') ||
+      (you === 'paper' && pc === 'rock')) {
+      score.you++;
+      streak++;
+      if (streak > maxStreak) maxStreak = streak;
+      text = '你赢了！' + NAME[you] + '克' + NAME[pc];
+      resultEl.style.color = '#6ee7b7';
+    } else {
+      score.pc++;
+      streak = 0;
+      text = '电脑赢了！' + NAME[pc] + '克' + NAME[you];
+      resultEl.style.color = '#fda4af';
+    }
+
+    resultEl.textContent = text;
+    document.getElementById('you').textContent = score.you;
+    document.getElementById('pc').textContent = score.pc;
+    document.getElementById('draw').textContent = score.draw;
+    streakEl.textContent = streak >= 2 ? '🔥 ' + streak + ' 连胜！最高 ' + maxStreak + ' 连胜'
+                                       : (maxStreak > 0 ? '最高 ' + maxStreak + ' 连胜' : '');
+
+    busy = false;
+    buttons.forEach(function (b) { b.disabled = false; });
+  }
+
+  buttons.forEach(function (btn) {
+    btn.addEventListener('click', function () { play(btn.getAttribute('data-c')); });
+  });
+<\/script>
+</body>
+</html>`
+},
+
+/* ---------------- 游戏 18：消消乐 ---------------- */
+{
+  title: '消消乐',
+  icon: '💎',
+  tag: '益智 · 消除',
+  desc: '点击两个相邻宝石进行交换，凑成横或竖三个以上同色即可消除，连锁得分！',
+  color: '#1098ad',
+  html: `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>消消乐</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: linear-gradient(135deg, #083344, #04202c);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: "Microsoft YaHei", sans-serif;
+    color: #ecfeff;
+    user-select: none;
+  }
+  h1 { font-size: 28px; margin-bottom: 10px; }
+  .info { display: flex; gap: 30px; font-size: 18px; margin-bottom: 14px; }
+  .info b { color: #22d3ee; }
+  .board {
+    display: grid;
+    grid-template-columns: repeat(8, 44px);
+    grid-template-rows: repeat(8, 44px);
+    gap: 4px;
+    background: #0e7490;
+    padding: 8px;
+    border-radius: 12px;
+  }
+  .gem {
+    width: 44px; height: 44px;
+    border-radius: 9px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    transition: transform .1s;
+  }
+  .gem:hover { transform: scale(1.08); }
+  .gem.sel { outline: 3px solid #fff; outline-offset: -3px; transform: scale(1.08); }
+  .gem.c0 { background: #ef4444; }
+  .gem.c1 { background: #f59e0b; }
+  .gem.c2 { background: #facc15; }
+  .gem.c3 { background: #22c55e; }
+  .gem.c4 { background: #3b82f6; }
+  .gem.c5 { background: #a855f7; }
+  .gem.pop { animation: pop .25s ease forwards; }
+  @keyframes pop { to { transform: scale(0); opacity: 0; } }
+  .tip { margin-top: 14px; font-size: 14px; color: #67e8f9; text-align: center; line-height: 1.8; }
+  button {
+    margin-top: 10px;
+    padding: 9px 24px;
+    font-size: 15px;
+    border: none;
+    border-radius: 8px;
+    background: #06b6d4;
+    color: #04202c;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  button:hover { filter: brightness(1.1); }
+</style>
+</head>
+<body>
+  <h1>💎 消消乐</h1>
+  <div class="info">
+    <div>得分：<b id="score">0</b></div>
+    <div>连锁：<b id="chain">0</b></div>
+  </div>
+  <div class="board" id="board"></div>
+  <button onclick="newGame()">重新开始</button>
+  <p class="tip">先点一个宝石，再点它上下左右相邻的宝石进行交换<br>三个以上同色连成一线即可消除，交换后没有消除会自动换回</p>
+
+<script>
+  var N = 8;              // 8 x 8 的棋盘
+  var KINDS = 6;          // 6 种颜色
+  var grid;               // 二维数组，存颜色编号 0~5
+  var selected = null;    // 当前选中的格子 {r,c}
+  var busy = false;       // 动画播放中禁止操作
+  var score = 0, chainCount = 0;
+  var boardEl = document.getElementById('board');
+
+  function delay(ms) { return new Promise(function (res) { setTimeout(res, ms); }); }
+
+  function newGame() {
+    // 随机生成棋盘，但要保证初始状态没有现成的三消
+    do {
+      grid = [];
+      for (var r = 0; r < N; r++) {
+        var row = [];
+        for (var c = 0; c < N; c++) row.push(Math.floor(Math.random() * KINDS));
+        grid.push(row);
+      }
+    } while (findMatches().size > 0);
+    score = 0; chainCount = 0;
+    selected = null;
+    updateUI();
+    render();
+  }
+
+  function updateUI() {
+    document.getElementById('score').textContent = score;
+    document.getElementById('chain').textContent = chainCount;
+  }
+
+  function render() {
+    boardEl.innerHTML = '';
+    for (var r = 0; r < N; r++) {
+      for (var c = 0; c < N; c++) {
+        var d = document.createElement('div');
+        d.className = 'gem c' + grid[r][c];
+        if (selected && selected.r === r && selected.c === c) d.classList.add('sel');
+        d.setAttribute('data-r', r);
+        d.setAttribute('data-c', c);
+        d.addEventListener('click', function () {
+          tap(parseInt(this.getAttribute('data-r'), 10),
+              parseInt(this.getAttribute('data-c'), 10));
+        });
+        boardEl.appendChild(d);
+      }
+    }
+  }
+
+  // 找出所有应该被消除的格子：横/竖连续 3 个以上同色
+  function findMatches() {
+    var set = {};
+    function add(r, c) { set[r + '_' + c] = true; }
+
+    // 横向
+    for (var r = 0; r < N; r++) {
+      var run = 1;
+      for (var c = 1; c <= N; c++) {
+        if (c < N && grid[r][c] !== null && grid[r][c] === grid[r][c-1]) {
+          run++;
+        } else {
+          if (run >= 3) for (var k = c - run; k < c; k++) add(r, k);
+          run = 1;
+        }
+      }
+    }
+    // 纵向
+    for (var c2 = 0; c2 < N; c2++) {
+      var run2 = 1;
+      for (var r2 = 1; r2 <= N; r2++) {
+        if (r2 < N && grid[r2][c2] !== null && grid[r2][c2] === grid[r2-1][c2]) {
+          run2++;
+        } else {
+          if (run2 >= 3) for (var k2 = r2 - run2; k2 < r2; k2++) add(k2, c2);
+          run2 = 1;
+        }
+      }
+    }
+    return { size: Object.keys(set).length, set: set };
+  }
+
+  async function tap(r, c) {
+    if (busy) return;
+
+    if (!selected) {
+      selected = { r: r, c: c };
+      render();
+      return;
+    }
+
+    // 再点同一个格子：取消选择
+    if (selected.r === r && selected.c === c) {
+      selected = null;
+      render();
+      return;
+    }
+
+    // 必须是上下左右相邻
+    var dist = Math.abs(selected.r - r) + Math.abs(selected.c - c);
+    if (dist !== 1) {
+      selected = { r: r, c: c };
+      render();
+      return;
+    }
+
+    // 尝试交换
+    busy = true;
+    swap(selected.r, selected.c, r, c);
+    render();
+    await delay(180);
+
+    if (findMatches().size > 0) {
+      selected = null;
+      chainCount = 0;
+      await resolve();
+    } else {
+      // 没有消除就换回去
+      swap(selected.r, selected.c, r, c);
+      selected = null;
+      render();
+    }
+    busy = false;
+  }
+
+  function swap(r1, c1, r2, c2) {
+    var t = grid[r1][c1];
+    grid[r1][c1] = grid[r2][c2];
+    grid[r2][c2] = t;
+  }
+
+  // 消除 → 下落 → 补充，循环到没有新的消除为止（含连锁）
+  async function resolve() {
+    while (true) {
+      var m = findMatches();
+      if (m.size === 0) break;
+
+      chainCount++;
+      score += m.size * 10 * chainCount;   // 连锁倍数得分
+      updateUI();
+
+      // 播放缩小消失动画后清空
+      Object.keys(m.set).forEach(function (key) {
+        var parts = key.split('_');
+        var r = +parts[0], c = +parts[1];
+        var index = r * N + c;
+        var el = boardEl.children[index];
+        if (el) el.classList.add('pop');
+      });
+      await delay(260);
+
+      Object.keys(m.set).forEach(function (key) {
+        var parts = key.split('_');
+        grid[+parts[0]][+parts[1]] = null;
+      });
+
+      // 每一列：去掉空格，上面的掉下来，顶部补新宝石
+      for (var c = 0; c < N; c++) {
+        var col = [];
+        for (var r = N - 1; r >= 0; r--) {
+          if (grid[r][c] !== null) col.push(grid[r][c]);
+        }
+        for (var r2 = N - 1; r2 >= 0; r2--) {
+          grid[r2][c] = col.length ? col.shift() : Math.floor(Math.random() * KINDS);
+        }
+      }
+      render();
+      await delay(220);
+    }
+    chainCount = 0;
+    updateUI();
+  }
+
+  newGame();
+<\/script>
+</body>
+</html>`
 }
 
 ];
@@ -1976,7 +3722,7 @@ var GAMES = [
    以下是合集页面本身的逻辑：生成卡片、打开/关闭游戏
    ============================================================ */
 
-// 生成 9 张游戏卡片
+// 生成 18 张游戏卡片
 var grid = document.getElementById('grid');
 GAMES.forEach(function (g, i) {
   var card = document.createElement('div');
